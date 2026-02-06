@@ -1,0 +1,238 @@
+#VRML_SIM R2025a utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "../protos/Road.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/objects/floors/protos/Floor.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/vehicles/protos/bmw/BmwX5.proto"
+EXTERNPROTO "../protos/RoadLine.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/devices/sick/protos/SickLms291.proto"
+
+WorldInfo {
+  ERP 0.6
+  basicTimeStep 10
+  lineScale 5
+  contactProperties [
+    ContactProperties {
+      coulombFriction [
+        8
+      ]
+      softCFM 1e-05
+    }
+  ]
+}
+Viewpoint {
+  orientation -0.4545324298949634 0.36649997206657725 0.8118362154086121 1.9823913877156478
+  position 3.5577921391851106 -10.072298522977004 19.164367349868034
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+Solid {
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00004_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 2.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00016_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(2)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00007_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+    Solid {
+      translation 2.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00019_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(1)"
+    }
+  ]
+  name "solid(5)"
+}
+BmwX5 {
+  hidden position_0_0 -9.080349903871971e-11
+  hidden position2_0_0 1.171847379009575e-06
+  hidden position_0_1 8.913871092562908e-11
+  hidden position2_0_1 1.1662897323585228e-06
+  hidden position_0_2 -0.0014444022418071967
+  hidden position_0_3 -0.001444510469333693
+  hidden position_0_9 3.69837393056594e-07
+  hidden linearVelocity_0 -7.829280948325135e-07 1.696476663629882e-10 -2.7242552185271055e-06
+  hidden angularVelocity_0 -6.501606197112389e-10 -2.999853810249411e-06 2.620179141217884e-13
+  hidden rotation_1 4.5401749383056783e-11 -0.9999999969978453 7.748747865344778e-05 1.171803668221103e-06
+  hidden linearVelocity_1 -6.021815037960718e-07 1.309547909446131e-10 5.760648152637444e-08
+  hidden angularVelocity_1 -5.839440989492814e-10 -2.69613415052915e-06 3.2552715310599534e-13
+  hidden rotation_2 4.4569355332639966e-11 0.9999999970792808 -7.642930242128564e-05 1.1661051241465883e-06
+  hidden linearVelocity_2 -6.021810334808124e-07 1.3094002687505032e-10 5.760663736458263e-08
+  hidden angularVelocity_2 -5.846984601752957e-10 -2.6961338754489402e-06 2.0546605838272956e-13
+  hidden rotation_3 0 1 0 0.001444402241728247
+  hidden linearVelocity_3 -6.633152658100265e-07 1.4337369421700653e-10 -1.6157591056753516e-07
+  hidden angularVelocity_3 -3.798960102420448e-10 -1.760455422257457e-06 2.800087203764322e-13
+  hidden rotation_4 0 -1 0 0.0014445104693482783
+  hidden linearVelocity_4 -6.633149193883096e-07 1.4330494702378434e-10 -1.6157575367969912e-07
+  hidden angularVelocity_4 -3.831665461740524e-10 -1.7604545022140832e-06 2.5220427251065575e-13
+  hidden translation_25 -1.26330188088275e-07 7.332041700447434e-07 -1.417991906116356e-07
+  hidden rotation_25 0.7466598432279097 0 -0.6652060421485012 3.6983709472390636e-07
+  translation -4.204025627393159 0.005409987206496586 0.29692577882070836
+  rotation -0.00010822763842716546 -0.9988520771205567 -0.047901109785971493 0.004497230218537795
+  controller "testing"
+  sensorsSlotFront [
+    Camera {
+      translation 0.0954344 0 0.169114
+      rotation 0 1 0 0.261799
+      children [
+        Pose {
+          translation -0.05 0 0
+          rotation 0 -1 0 1.5708
+          children [
+            Shape {
+              appearance PBRAppearance {
+                baseColor 0.8 0.8 0.8
+                roughness 1
+                metalness 0
+              }
+              geometry Cylinder {
+                height 0.1
+                radius 0.04
+              }
+            }
+          ]
+        }
+      ]
+      fieldOfView 1
+      width 1280
+      height 720
+    }
+    SickLms291 {
+      translation 0.06 0 0
+    }
+  ]
+  sensorsSlotCenter [
+    GPS {
+    }
+    Gyro {
+    }
+    Display {
+      width 200
+      height 150
+    }
+  ]
+}
+Floor {
+  translation 3 0 -0.02
+  size 1000 1000
+  tileSize 1 1
+  appearance PBRAppearance {
+    baseColorMap ImageTexture {
+      url [
+        "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/projects/vehicles/worlds/textures/ground_grass.jpg"
+      ]
+    }
+    roughness 1
+    metalness 0
+  }
+}
+DEF LOOP Solid {
+  children [
+    Road {
+      id "sesuatu"
+      numberOfForwardLanes 2
+      lines [
+        RoadLine {
+          type "doubledashed"
+          width 0.06
+        }
+      ]
+      bottom TRUE
+      wayPoints [
+        0 0 0
+        30 0 0
+        50 10 0
+        70 40 0
+        50 60 0
+        0 60 0
+        -20 40 0
+        -20 20 0
+        -15 0 0
+        -5 0 0
+        0 0 0
+      ]
+      splineSubdivision 6
+      rightBorderBoundingObject TRUE
+      leftBorderBoundingObject TRUE
+    }
+  ]
+}

@@ -22,8 +22,10 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation -0.08457961359138598 0.9673753974902245 0.23881191196287055 0.7019460321784954
-  position -6.906492344516654 -2.0380618615594277 12.022964385697364
+  orientation 0.017385617298439827 0.9982177164929175 0.057088797419613826 0.6104066340828266
+  position -26.020112870925708 0.1063556985567445 22.06275755419612
+  follow "vehicle"
+  followType "Mounted Shot"
 }
 TexturedBackground {
 }
@@ -36,7 +38,7 @@ Solid {
       appearance PBRAppearance {
         baseColorMap ImageTexture {
           url [
-            "../protos/textures/apriltags/fixed/tag36_11_00019_fixed.png"
+            "../protos/textures/apriltags/fixed/tag36_11_00002_fixed.png"
           ]
           repeatS FALSE
           repeatT FALSE
@@ -52,35 +54,13 @@ Solid {
   name "solid(1)"
 }
 Solid {
-  translation 3.35 -0.78 0.01
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColorMap ImageTexture {
-          url [
-            "../protos/textures/apriltags/fixed/tag36_11_00007_fixed.png"
-          ]
-          repeatS FALSE
-          repeatT FALSE
-          filtering 0
-        }
-        metalness 0
-      }
-      geometry Plane {
-        size 0.5 0.5
-      }
-    }
-  ]
-  name "solid(4)"
-}
-Solid {
   translation 2.35 0.72 0.01
   children [
     Shape {
       appearance PBRAppearance {
         baseColorMap ImageTexture {
           url [
-            "../protos/textures/apriltags/fixed/tag36_11_00016_fixed.png"
+            "../protos/textures/apriltags/fixed/tag36_11_00003_fixed.png"
           ]
           repeatS FALSE
           repeatT FALSE
@@ -96,29 +76,1178 @@ Solid {
   name "solid(2)"
 }
 Solid {
-  translation 3.35 0.72 0.01
   children [
-    Shape {
-      appearance PBRAppearance {
-        baseColorMap ImageTexture {
-          url [
-            "../protos/textures/apriltags/fixed/tag36_11_00004_fixed.png"
-          ]
-          repeatS FALSE
-          repeatT FALSE
-          filtering 0
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00000_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
         }
-        metalness 0
-      }
-      geometry Plane {
-        size 0.5 0.5
-      }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00001_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(5)"
+}
+Solid {
+  translation 10.007 0.059925 0
+  rotation 0 0 1 0.05
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00004_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00005_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
     }
   ]
   name "solid(3)"
 }
+Solid {
+  translation 20.0146 0.560352 0
+  rotation 0 0 1 0.1
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00006_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00007_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(4)"
+}
+Solid {
+  translation 29.9368 2.0776 0
+  rotation 0 0 1 0.25
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00008_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00009_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(6)"
+}
+Solid {
+  translation 38.7402 5.13791 0
+  rotation 0 0 1 0.53
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00010_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00011_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(7)"
+}
+Solid {
+  translation 47.0809 10.547 0
+  rotation 0 0 1 0.791799
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00012_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00013_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(8)"
+}
+Solid {
+  translation 53.9046 17.6908 0
+  rotation 0 0 1 0.92
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00014_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00015_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(9)"
+}
+Solid {
+  translation 59.5033 25.8538 0
+  rotation 0 0 1 1.13
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00016_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00017_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(10)"
+}
+Solid {
+  translation 62.9704 35.2182 0
+  rotation 0 0 1 1.47
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00018_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00019_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(11)"
+}
+Solid {
+  translation 61.9624 45.1081 0
+  rotation 0 0 1 2.25
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00020_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00021_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(12)"
+}
+Solid {
+  translation 54.9445 52.1757 0
+  rotation 0 0 1 2.64
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00022_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00023_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(13)"
+}
+Solid {
+  translation 45.9189 56.3553 0
+  rotation 0 0 1 2.9018
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00024_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00025_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(14)"
+}
+Solid {
+  translation 36.1478 58.2992 0
+  rotation 0 0 1 3
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00026_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00027_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(15)"
+}
+Solid {
+  translation 26.1721 59.1006 0
+  rotation 0 0 -1 3.1331853071795863
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00028_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00029_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(16)"
+}
+Solid {
+  translation 16.2058 58.6438 0
+  rotation 0 0 -1 3.0331853071795862
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00030_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00031_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(17)"
+}
+Solid {
+  translation 6.3683 56.989 0
+  rotation 0 0 -1 2.853185307179586
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00032_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00033_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(18)"
+}
+Solid {
+  translation -3.08628 53.5804 0
+  rotation 0 0 1 -2.55
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00034_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00035_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(19)"
+}
+Solid {
+  translation -11.0329 47.6012 0
+  rotation 0 0 -1 2.2882
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00036_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00037_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(20)"
+}
+Solid {
+  translation -16.5979 40.0539 0
+  rotation 0 0 -1 1.95
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00038_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00039_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(21)"
+}
+Solid {
+  translation -19.4208 30.6396 0
+  rotation 0 0 -1 1.63
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00040_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00041_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(22)"
+}
+Solid {
+  translation -19.2258 20.6703 0
+  rotation 0 0 -1 1.43
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00042_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00043_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(23)"
+}
+Solid {
+  translation -17.5137 11.2146 0
+  rotation 0 0 -1 1.25
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00044_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00045_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(24)"
+}
+Solid {
+  translation -12.5545 1.22598 0
+  rotation 0 0 -1 0.29
+  children [
+    Solid {
+      translation 3.35 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00046_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 3.35 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00047_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(25)"
+}
 BmwX5 {
-  translation -4.20546 0.00540917 0.604139
+  translation -4.04546 0.00537472 0.605595
   rotation 0.00022246486268542086 -0.9997208509297469 -0.02362563704300305 0.009117639309515783
   controller "testing"
   sensorsSlotFront [
@@ -205,6 +1334,11 @@ DEF LOOP Solid {
       splineSubdivision 6
       rightBorderBoundingObject TRUE
       leftBorderBoundingObject TRUE
+    }
+    Solid {
+      translation 6.36987 56.9723 0
+      rotation 0 0 -1 2.853185307179586
+      name "solid(18)"
     }
   ]
 }
