@@ -22,8 +22,8 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation 0.017385617298439827 0.9982177164929175 0.057088797419613826 0.6104066340828266
-  position -26.020112870925708 0.1063556985567445 22.06275755419612
+  orientation 0.025444198767111875 0.9986987912381341 0.04419634745756539 0.559974780361226
+  position -21.04777051310676 -0.25977204157335054 16.354878448999713
   follow "vehicle"
   followType "Mounted Shot"
 }
@@ -1094,7 +1094,7 @@ Solid {
   name "solid(22)"
 }
 Solid {
-  translation -19.2258 20.6703 0
+  translation -18.612 20.7571 0
   rotation 0 0 -1 1.43
   children [
     Solid {
@@ -1145,8 +1145,8 @@ Solid {
   name "solid(23)"
 }
 Solid {
-  translation -17.5137 11.2146 0
-  rotation 0 0 -1 1.25
+  translation -15.5293 11.874 0
+  rotation 0 0 -1 0.988201
   children [
     Solid {
       translation 3.35 0.72 0.01
@@ -1196,8 +1196,8 @@ Solid {
   name "solid(24)"
 }
 Solid {
-  translation -12.5545 1.22598 0
-  rotation 0 0 -1 0.29
+  translation -9.21101 3.84376 0
+  rotation 0 0 1 -0.551795307179586
   children [
     Solid {
       translation 3.35 0.72 0.01
@@ -1329,7 +1329,7 @@ DEF LOOP Solid {
         0 60 0
         -20 40 0
         -20 20 0
-        -15 0 0
+        -15 10 0
         -5 0 0
         0 0 0
       ]

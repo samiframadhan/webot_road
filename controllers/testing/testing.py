@@ -15,8 +15,8 @@ from bev_calibrator import BEVCalibrator
 # --- Configuration ---
 MAX_SPEED_WEBOTS = 50.0 
 CRUISING_SPEED = 100.0
-STANLEY_K = 1.0
-TAG_MAP_FILE = "output.yaml" 
+STANLEY_K = 1.5
+TAG_MAP_FILE = "output2.yaml" 
 
 # --- Helper Functions ---
 def _contour_center(cnt):
@@ -34,7 +34,7 @@ class DataLogger:
         header = [
             "timestamp", 
             "pos_x", "pos_y", "pos_z",       # Car GPS Position
-            "track_x", "track_z",            # Calculated Track Center Position
+            "track_x", "track_y", "track_z",            # Calculated Track Center Position
             "roll", "pitch", "yaw",          # Car Orientation
             "cross_track_error", "heading_error", 
             "speed_cmd", "steering_cmd", "has_lock"
@@ -45,13 +45,13 @@ class DataLogger:
     def log(self, timestamp, pos, track_pos, rot, cte, he, speed, steer, has_lock):
         px, py, pz = pos if pos is not None else (None, None, None)
         # Extract calculated track position (only X and Z usually matter for ground plane)
-        tx, tz = track_pos if track_pos is not None else (None, None)
+        tx, ty, tz = track_pos if track_pos is not None else (None, None)
         roll, pitch, yaw = rot if rot is not None else (None, None, None)
         
         row = [
             round(float(timestamp), 4),
             px, py, pz,
-            tx, tz,
+            tx, ty, tz,
             roll, pitch, yaw,
             round(float(cte), 4),
             round(float(he), 4),
@@ -239,6 +239,24 @@ class WebotsLaneFollower:
         gray = cv2.cvtColor(warped_img, cv2.COLOR_BGR2GRAY)
         if exclusion_mask is not None:
             gray = cv2.bitwise_and(gray, exclusion_mask)
+        
+        h, w = gray.shape
+        roi_mask = np.zeros_like(gray)
+        roi_points = np.array([
+            [360, 0],                         # Kiri Atas (Ujung)
+            [910, 0],                         # Kanan Atas (Ujung)
+            # [830, int(h * 0.25)],             # Kanan Atas (Mulai melengkung)
+            # [int(w * 0.8), int(420 * 0.5)],   # Kanan Tengah (Lengkungan masuk)
+            [int(w * 0.51), int(450)], # Kanan Bawah (Leher sempit)
+            # [int(w * 0.51), 490],             # Kanan Dasar
+            # [int(w * 0.49), 490],             # Kiri Dasar
+            [int(w * 0.49), int(450)], # Kiri Bawah (Leher sempit)
+            # [int(w * 0.2), int(420 * 0.5)],   # Kiri Tengah (Lengkungan keluar)
+            # [440, int(h * 0.25)]              # Kiri Atas (Mulai melengkung)
+        ], dtype=np.int32)
+        cv2.fillPoly(roi_mask, [roi_points], 255)
+        gray = cv2.bitwise_and(gray, roi_mask)
+        cv2.polylines(debug_frame, [roi_points], isClosed=True, color=(255, 0, 0), thickness=2)
 
         lower_thresh, upper_thresh = self.lane_thresholds
         mask_binary = cv2.inRange(gray, lower_thresh, upper_thresh)
@@ -415,6 +433,7 @@ class WebotsLaneFollower:
                         # Project
                         t_x = car_x + abs(cte) * math.cos(perp_angle) * (-1 if cte > 0 else 1)
                         t_z = car_z + abs(cte) * math.sin(perp_angle) * (-1 if cte > 0 else 1)
+                        t_y = car_y + abs(cte) * math.sin(perp_angle) * (-1 if cte > 0 else 1)
                         
                         # Simplified projection if CTE sign convention matches standard:
                         # t_x = car_x - cte * math.sin(track_heading)  <-- Depends on 0-angle ref
@@ -422,8 +441,9 @@ class WebotsLaneFollower:
                         
                         t_x = car_x - cte * math.cos(track_heading - math.pi/2) # Simplified vector addition
                         t_z = car_z - cte * math.sin(track_heading - math.pi/2)
+                        t_y = car_y - cte * math.sin(track_heading - math.pi/2)
                         
-                        track_pos_est = (t_x, t_z)
+                        track_pos_est = (t_x, t_z, t_y)
 
                     # --- Log Data ---
                     self.logger.log(
