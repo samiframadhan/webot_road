@@ -1282,6 +1282,8 @@ BmwX5 {
     }
   ]
   sensorsSlotCenter [
+    InertialUnit {
+    }
     GPS {
     }
     Gyro {

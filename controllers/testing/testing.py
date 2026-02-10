@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 import math
+import yaml
+import csv
 from dt_apriltags import Detector
 
 # Webots Imports
@@ -14,6 +16,7 @@ from bev_calibrator import BEVCalibrator
 MAX_SPEED_WEBOTS = 50.0 
 CRUISING_SPEED = 100.0
 STANLEY_K = 1.0
+TAG_MAP_FILE = "output.yaml" 
 
 # --- Helper Functions ---
 def _contour_center(cnt):
@@ -21,17 +24,123 @@ def _contour_center(cnt):
     if M["m00"] == 0: return None
     return int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"])
 
+class DataLogger:
+    def __init__(self, filename="result.csv"):
+        self.filename = filename
+        self.file = open(self.filename, mode='w', newline='', buffering=1)
+        self.writer = csv.writer(self.file)
+        
+        # Updated Header with Track Position Estimates
+        header = [
+            "timestamp", 
+            "pos_x", "pos_y", "pos_z",       # Car GPS Position
+            "track_x", "track_z",            # Calculated Track Center Position
+            "roll", "pitch", "yaw",          # Car Orientation
+            "cross_track_error", "heading_error", 
+            "speed_cmd", "steering_cmd", "has_lock"
+        ]
+        self.writer.writerow(header)
+        print(f"Data logger initialized. Writing to: {self.filename}")
+
+    def log(self, timestamp, pos, track_pos, rot, cte, he, speed, steer, has_lock):
+        px, py, pz = pos if pos is not None else (None, None, None)
+        # Extract calculated track position (only X and Z usually matter for ground plane)
+        tx, tz = track_pos if track_pos is not None else (None, None)
+        roll, pitch, yaw = rot if rot is not None else (None, None, None)
+        
+        row = [
+            round(float(timestamp), 4),
+            px, py, pz,
+            tx, tz,
+            roll, pitch, yaw,
+            round(float(cte), 4),
+            round(float(he), 4),
+            round(float(speed), 2),
+            round(float(steer), 4),
+            int(has_lock)
+        ]
+        self.writer.writerow(row)
+
+    def close(self):
+        if self.file:
+            self.file.close()
+
 class StanleyController:
     @staticmethod
     def calculate_steering(cross_track_error, heading_error, speed, k=0.8, epsilon=1e-5):
         denom = abs(speed*0.277778) + epsilon
         cross_track_term = math.atan2(k * -cross_track_error, denom)
         return heading_error + cross_track_term
+    
+    @staticmethod
     def calculate_velocity(cross_track_error, heading_error, max_speed=1.0):
         error_magnitude = abs(cross_track_error) + abs(heading_error)
         speed_factor = 1.0 / (1.0 + error_magnitude)
         desired_speed = max_speed * speed_factor
         return max(0.2, desired_speed)
+
+class GlobalPoseEstimator:
+    def __init__(self, tag_map_path, tag_size_meters):
+        self.tag_size = tag_size_meters
+        self.tag_map = self._load_map(tag_map_path)
+        self.world_corners = {} 
+        self._generate_world_corners()
+
+    def _load_map(self, path):
+        try:
+            with open(path, 'r') as f:
+                return yaml.safe_load(f)
+        except Exception as e:
+            print(f"Warning: Could not load tag map: {e}")
+            return {}
+
+    def _generate_world_corners(self):
+        s = self.tag_size / 2.0
+        local_corners = np.array([[-s, s, 0], [s, s, 0], [s, -s, 0], [-s, -s, 0]])
+        for tag_id, pose_data in self.tag_map.items():
+            if len(pose_data) != 7: continue
+            tx, ty, tz, rx, ry, rz, angle = pose_data
+            rot_vec = np.array([rx, ry, rz]) * angle
+            R, _ = cv2.Rodrigues(rot_vec)
+            t = np.array([tx, ty, tz])
+            w_corners = np.dot(local_corners, R.T) + t
+            self.world_corners[tag_id] = w_corners.astype(np.float32)
+
+    def estimate_pose(self, tags, camera_matrix, dist_coeffs=None):
+        obj_points = []
+        img_points = []
+        found_tags = 0
+        for tag in tags:
+            tid = tag.tag_id
+            if tid in self.world_corners:
+                obj_points.extend(self.world_corners[tid])
+                img_points.extend(tag.corners)
+                found_tags += 1
+        
+        if found_tags < 2: return False, None, None
+        obj_points = np.array(obj_points, dtype=np.float32)
+        img_points = np.array(img_points, dtype=np.float32)
+        if dist_coeffs is None: dist_coeffs = np.zeros((4,1))
+
+        success, rvec, tvec = cv2.solvePnP(obj_points, img_points, camera_matrix, dist_coeffs, flags=cv2.SOLVEPNP_SQPNP)
+        if not success: return False, None, None
+
+        R, _ = cv2.Rodrigues(rvec)
+        R_inv = R.T
+        cam_pos_world = -R_inv @ tvec
+        
+        # Calculate Euler Angles
+        sy = math.sqrt(R_inv[0,0] * R_inv[0,0] +  R_inv[1,0] * R_inv[1,0])
+        singular = sy < 1e-6
+        if not singular:
+            roll = math.atan2(R_inv[2,1] , R_inv[2,2])
+            pitch = math.atan2(-R_inv[2,0], sy)
+            yaw = math.atan2(R_inv[1,0], R_inv[0,0])
+        else:
+            roll = math.atan2(-R_inv[1,2], R_inv[1,1])
+            pitch = math.atan2(-R_inv[2,0], sy)
+            yaw = 0
+        return True, cam_pos_world.flatten(), np.degrees([roll, pitch, yaw])
 
 class WebotsLaneFollower:
     def __init__(self):
@@ -39,6 +148,7 @@ class WebotsLaneFollower:
         self.driver = Driver()
         self.timestep = int(self.driver.getBasicTimeStep())
         if self.timestep == 0: self.timestep = 32
+        self.logger = DataLogger("result.csv")
 
         # 2. Initialize Camera
         self.camera = self.driver.getDevice("camera")
@@ -47,14 +157,27 @@ class WebotsLaneFollower:
             self.cam_width = self.camera.getWidth()
             self.cam_height = self.camera.getHeight()
             fov = self.camera.getFov()
-            print(f"Webots Camera: {self.cam_width}x{self.cam_height}, FOV: {fov:.2f}")
-            
             self.bev = BEVCalibrator(self.cam_width, self.cam_height, fov)
             self.at_detector = Detector(families="tag36h11", nthreads=2, quad_decimate=1.0)
             self.tag_size_meters = 0.30
+            self.camera_matrix = self.bev.K
             self.camera_params = (self.bev.K[0,0], self.bev.K[1,1], self.bev.K[0,2], self.bev.K[1,2])
         else:
             print("Error: Camera not found")
+
+        self.gps = self.driver.getDevice("gps")
+        if self.gps:
+            self.gps.enable(self.timestep)
+            print("GPS Enabled.")
+        else:
+            print("Warning: GPS device not found (check name 'gps').")
+
+        self.imu = self.driver.getDevice("inertial unit") # Standard Webots name
+        if self.imu:
+            self.imu.enable(self.timestep)
+            print("IMU Enabled.")
+        else:
+            print("Warning: IMU device not found (check name 'inertial unit').")
 
         # 3. Initialize Keyboard
         self.keyboard = Keyboard()
@@ -63,15 +186,15 @@ class WebotsLaneFollower:
         # 4. Control State
         self.current_speed = 0.0
         self.current_steering = 0.0
-        
         self.lane_thresholds = (190, 255) 
         self.calibrated = False
-
-        # 5. BEV Persistence (New Additions)
+        
         self.bev_calibrated = False
-        self.M = None           # Perspective Matrix
-        self.bev_center = None  # Camera center in BEV
-        self.bev_ppm = None     # Pixels per meter
+        self.M = None
+        self.bev_center = None
+        self.bev_ppm = None
+        
+        self.pose_estimator = GlobalPoseEstimator(TAG_MAP_FILE, self.tag_size_meters)
 
     def calibrate_lane_thresholds(self, frame_bgr, exclusion_mask=None, matrix=None):
         print("Calibrating lane thresholds...")
@@ -110,16 +233,9 @@ class WebotsLaneFollower:
             self.lane_thresholds = (int(lower), int(upper))
             self.calibrated = True
             print(f"Calibration Successful. Peak: {used_peak}, Range: {self.lane_thresholds}")
-        else:
-            print("Calibration Failed: No clear peaks found.")
 
     def process_vision_pipeline(self, warped_img, cam_center, ppm, exclusion_mask=None):
-        """
-        Detects lane lines using simple contour centers and visualizes CTE.
-        """
         debug_frame = warped_img.copy()
-        
-        # --- 1. Color Filtering ---
         gray = cv2.cvtColor(warped_img, cv2.COLOR_BGR2GRAY)
         if exclusion_mask is not None:
             gray = cv2.bitwise_and(gray, exclusion_mask)
@@ -131,20 +247,16 @@ class WebotsLaneFollower:
         morphed = cv2.morphologyEx(mask_binary, cv2.MORPH_CLOSE, kernel)
         morphed = cv2.morphologyEx(morphed, cv2.MORPH_OPEN, kernel)
         
-        # --- 2. Contours ---
         contours, _ = cv2.findContours(morphed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(debug_frame, contours, -1, (0, 255, 0), 1)
-        
         valid_contours = [cnt for cnt in contours if cv2.contourArea(cnt) < 550]
 
-        # --- 3. Simple Path Estimation (No Pairing) ---
         path_points = []
         for cnt in valid_contours:
             center = _contour_center(cnt)
             if center:
                 path_points.append(center)
         
-        # Sort by Y (Closest to car first -> Higher Y value)
         path_points.sort(key=lambda p: p[1], reverse=True)
 
         cte = 0.0
@@ -152,39 +264,26 @@ class WebotsLaneFollower:
         has_lock = False
 
         if len(path_points) >= 2:
-            # Use closest two points for local path approximation
             p_close = path_points[0]
             p_far = path_points[1] 
-            
-            # Draw Path Line
             cv2.line(debug_frame, p_close, p_far, (0, 255, 255), 2)
             
-            # --- Calculate Errors ---
             dx = p_far[0] - p_close[0]
             dy = p_far[1] - p_close[1]
             path_angle = math.atan2(-dy, dx) 
             he = (math.pi / 2) - path_angle
 
-            # Cross Track Error
             vx, vy = cam_center
-            
-            if abs(dx) < 1e-5: # Vertical line
+            if abs(dx) < 1e-5: 
                 cte_pixels = vx - p_close[0]
-                # Visual: Horizontal line to path
                 proj_pt = (p_close[0], int(vy))
             else:
                 m = dy / dx
                 c_val = p_close[1] - (m * p_close[0])
                 cte_pixels = (m * vx - vy + c_val) / math.sqrt(m**2 + 1)
-                
-                # Visual: Calculate projection point for drawing CTE line
-                # Line 1 (Path): y = mx + c
-                # Line 2 (Perpendicular from Car): y - vy = (-1/m)(x - vx)
                 epsilon = 1e-5
                 m_perp = -1/(m+epsilon)
                 c_perp = vy - (m_perp * vx)
-                
-                # Intersection
                 inter_x = (c_perp - c_val) / (m - m_perp)
                 inter_y = m * inter_x + c_val
                 proj_pt = (int(inter_x), int(inter_y))
@@ -192,12 +291,8 @@ class WebotsLaneFollower:
             cte = cte_pixels / ppm
             has_lock = True
             
-            # --- Visualization: CTE ---
-            # Draw line from Car Center to Projection Point on Path (Red)
             cv2.line(debug_frame, (int(vx), int(vy)), proj_pt, (0, 0, 255), 2)
             cv2.circle(debug_frame, proj_pt, 4, (0, 0, 255), -1)
-            
-            # Text Stats
             cv2.putText(debug_frame, f"CTE: {cte:.2f}m", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
             cv2.putText(debug_frame, f"HE: {math.degrees(he):.1f}deg", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
@@ -205,12 +300,12 @@ class WebotsLaneFollower:
 
     def run(self):
         print("Starting Webots Lane Follower...")
-        print("Controls: Arrows to move, Space to stop, 'C' to Calibrate.")
         
         while self.driver.step() != -1:
             key = self.keyboard.getKey()
             manual_override = False
             
+            # --- Input Handling ---
             if key == Keyboard.UP:
                 self.current_speed += 1.0
                 manual_override = True
@@ -221,23 +316,22 @@ class WebotsLaneFollower:
                 self.current_speed = 0.0
                 self.current_steering = 0.0
                 manual_override = True
-            elif key == ord('C'):
-                pass 
 
+            # --- Image Capture ---
             raw_image = self.camera.getImage()
             if raw_image:
                 img_np = np.frombuffer(raw_image, np.uint8).reshape((self.cam_height, self.cam_width, 4))
                 frame_bgr = img_np[:, :, :3].copy()
                 gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
 
+                # --- Tag Detection & Pose ---
                 tags = self.at_detector.detect(gray, estimate_tag_pose=False, camera_params=self.camera_params, tag_size=self.tag_size_meters)
                 tag_centers = {tag.tag_id: tag.center for tag in tags}
                 
+                # --- Create Exclusion Mask for Lane Detector ---
                 h, w = frame_bgr.shape[:2]
                 tag_mask = np.ones((h, w), dtype=np.uint8) * 255
                 MASK_EXPANSION = 1.4
-
-                # Create Exclusion mask for tags
                 if tags:
                     for tag in tags:
                         center = tag.center
@@ -246,11 +340,12 @@ class WebotsLaneFollower:
                         pts = expanded_corners.astype(np.int32).reshape((-1, 1, 2))
                         cv2.fillPoly(tag_mask, [pts], 0)
 
-                # --- BEV Calibration Logic (Modified) ---
+                    # Update global pose for visualization (optional)
+                    self.pose_estimator.estimate_pose(tags, self.camera_matrix)
+
+                # --- BEV Calibration Logic ---
                 required_ids = {0, 1, 2, 3}
                 present_ids = set(tag_centers.keys())
-                
-                # Check if we have all specific IDs to run a FRESH calibration
                 should_run_calibration = required_ids.issubset(present_ids)
 
                 warped = None
@@ -259,31 +354,24 @@ class WebotsLaneFollower:
                 ppm = None
                 
                 if should_run_calibration:
-                    # Run BEV process and update persistent data
                     warped, matrix, cam_center, ppm, is_valid = self.bev.process(frame_bgr, tag_centers)
                     if is_valid:
                         self.M = matrix
                         self.bev_center = cam_center
                         self.bev_ppm = ppm
                         self.bev_calibrated = True
-                
                 elif self.bev_calibrated:
-                    # No tags, but we have old data. Manual Warp.
                     matrix = self.M
                     cam_center = self.bev_center
                     ppm = self.bev_ppm
                     warped = cv2.warpPerspective(frame_bgr, matrix, (w, h))
 
-                # --- Pipeline Execution ---
-                
-                # Handle 'C' key calibration (needs matrix)
                 if key == ord('C'):
                      self.calibrate_lane_thresholds(frame_bgr, tag_mask, matrix)
 
+                # --- Main Lane Logic & Data Logging ---
                 if self.bev_calibrated and warped is not None:
-                    # Warp the tag mask to match the BEV view
                     warped_mask = cv2.warpPerspective(tag_mask, matrix, (w, h))
-                    
                     cte, he, has_lock, debug_img = self.process_vision_pipeline(warped, cam_center, ppm, warped_mask)
                     
                     if has_lock and not manual_override:
@@ -294,22 +382,66 @@ class WebotsLaneFollower:
                         else:
                             self.current_steering = max(-0.5, min(0.5, steer))
                         self.current_speed = speed
-                        # cv2.putText(debug_img, "AUTO", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-                        cv2.putText(debug_img, f"Steer angle: {math.degrees(steer):.2f}", (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
                     
-                    # --- Visualization: Steering Angle ---
-                    vx, vy = cam_center
-                    steering_len = 50
-                    steer_vis_angle = -math.pi/2 + self.current_steering
+                    track_pos_est = (None, None)
+                    gps_pos = None
+                    car_rot = None
                     
-                    sx = int(vx + steering_len * math.cos(steer_vis_angle))
-                    sy = int(vy + steering_len * math.sin(steer_vis_angle))
-                    
-                    cv2.arrowedLine(debug_img, (int(vx), int(vy)), (sx, sy), (255, 0, 255), 3)
+                    if self.gps and self.imu and has_lock:
+                        # 1. Get raw sensor data
+                        gps_pos = self.gps.getValues() # [x, y, z]
+                        rpy = self.imu.getRollPitchYaw() # [roll, pitch, yaw]
+                        car_rot = np.degrees(rpy)
+                        
+                        car_yaw = rpy[2] # Global Yaw in radians
+                        car_x, car_y, car_z = gps_pos
+                        
+                        # 2. Derive Track Heading from Heading Error
+                        # HE = Car_Heading - Track_Heading  => Track_Heading = Car_Heading - HE
+                        # (Note: Verify sign of HE in your controller logic. Usually Left Error is positive)
+                        track_heading = car_yaw - he
+                        
+                        # 3. Project Car Position to Track Center
+                        # We need to move distance 'CTE' perpendicular to the track heading.
+                        # Perpendicular to track_heading is (track_heading - 90 deg) if CTE > 0 means LEFT
+                        # Standard Webots: X is Right/Left, Z is Forward/Back.
+                        # We calculate the offsets:
+                        # Note: This geometric logic assumes CTE is positive when car is LEFT of track.
+                        # If CTE is positive, we must move RIGHT (negative direction relative to track normal).
+                        
+                        # Calculate perpendicular angle (90 deg to the right)
+                        perp_angle = track_heading - (math.pi / 2)
+                        
+                        # Project
+                        t_x = car_x + abs(cte) * math.cos(perp_angle) * (-1 if cte > 0 else 1)
+                        t_z = car_z + abs(cte) * math.sin(perp_angle) * (-1 if cte > 0 else 1)
+                        
+                        # Simplified projection if CTE sign convention matches standard:
+                        # t_x = car_x - cte * math.sin(track_heading)  <-- Depends on 0-angle ref
+                        # Let's stick to the rotation logic:
+                        
+                        t_x = car_x - cte * math.cos(track_heading - math.pi/2) # Simplified vector addition
+                        t_z = car_z - cte * math.sin(track_heading - math.pi/2)
+                        
+                        track_pos_est = (t_x, t_z)
 
+                    # --- Log Data ---
+                    self.logger.log(
+                        timestamp=self.driver.getTime(),
+                        pos=gps_pos,
+                        track_pos=track_pos_est,
+                        rot=car_rot,
+                        cte=cte,
+                        he=he,
+                        speed=self.current_speed,
+                        steer=self.current_steering,
+                        has_lock=has_lock
+                    )
+
+                    # Visualization
                     cv2.imshow("BEV Driver", debug_img)
+                    cv2.imshow("Raw Camera", frame_bgr)
                 else:
-                    # Not calibrated yet, show raw feed with warning
                     cv2.putText(frame_bgr, "Waiting for Tags 0,1,2,3...", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
                     cv2.imshow("BEV Driver", frame_bgr)
                     
