@@ -18,6 +18,12 @@ CRUISING_SPEED = 100.0
 STANLEY_K = 1.5
 TAG_MAP_FILE = "output2.yaml" 
 
+# --- Odometry Configuration ---
+WHEEL_RADIUS = 0.40  # Meters (Approx for BMW X5 in Webots)
+WHEEL_BASE = 2.995   # Meters (Distance between front and rear axles)
+SPEED_NOISE_STD = 0.5 # Standard deviation for speed noise (km/h)
+STEER_NOISE_STD = 0.005 # Standard deviation for steering noise (radians)
+
 # --- Helper Functions ---
 def _contour_center(cnt):
     M = cv2.moments(cnt)
@@ -30,24 +36,27 @@ class DataLogger:
         self.file = open(self.filename, mode='w', newline='', buffering=1)
         self.writer = csv.writer(self.file)
         
-        # Updated Header with Track Position Estimates
+        # Updated Header with Track Position Estimates AND Odometry
         header = [
             "timestamp", 
             "pos_x", "pos_y", "pos_z",       # Car GPS Position
-            "track_x", "track_y", "track_z",            # Calculated Track Center Position
-            "roll", "pitch", "yaw",          # Car Orientation
+            "track_x", "track_y", "track_z", # Calculated Track Center Position
+            "roll", "pitch", "yaw",          # Car Orientation (IMU)
             "cross_track_error", "heading_error", 
-            "speed_cmd", "steering_cmd", "has_lock"
+            "speed_cmd", "steering_cmd", "has_lock",
+            "odom_x", "odom_y", "odom_yaw"   # <--- ADDED ODOMETRY COLUMNS
         ]
         self.writer.writerow(header)
         print(f"Data logger initialized. Writing to: {self.filename}")
 
-    def log(self, timestamp, pos, track_pos, rot, cte, he, speed, steer, has_lock):
+    def log(self, timestamp, pos, track_pos, rot, cte, he, speed, steer, has_lock, odom):
         px, py, pz = pos if pos is not None else (None, None, None)
-        # Extract calculated track position (only X and Z usually matter for ground plane)
         tx, ty, tz = track_pos if track_pos is not None else (None, None)
         roll, pitch, yaw = rot if rot is not None else (None, None, None)
         
+        # Unpack Odometry
+        ox, oy, oyaw = odom
+
         row = [
             round(float(timestamp), 4),
             px, py, pz,
@@ -57,7 +66,10 @@ class DataLogger:
             round(float(he), 4),
             round(float(speed), 2),
             round(float(steer), 4),
-            int(has_lock)
+            int(has_lock),
+            round(float(ox), 4), # Odom X
+            round(float(oy), 4), # Odom Y
+            round(float(oyaw), 4) # Odom Yaw
         ]
         self.writer.writerow(row)
 
@@ -172,7 +184,7 @@ class WebotsLaneFollower:
         else:
             print("Warning: GPS device not found (check name 'gps').")
 
-        self.imu = self.driver.getDevice("inertial unit") # Standard Webots name
+        self.imu = self.driver.getDevice("inertial unit")
         if self.imu:
             self.imu.enable(self.timestep)
             print("IMU Enabled.")
@@ -195,6 +207,13 @@ class WebotsLaneFollower:
         self.bev_ppm = None
         
         self.pose_estimator = GlobalPoseEstimator(TAG_MAP_FILE, self.tag_size_meters)
+
+    def getspeedsteer(self):
+        """Helper to get current real speed and steering angle from Webots"""
+        # getCurrentSpeed() returns speed in km/h or m/s depending on model, 
+        # but usually m/s in new nodes, km/h in Driver.
+        # Driver.getCurrentSpeed() returns km/h usually. 
+        return self.driver.getCurrentSpeed(), self.driver.getSteeringAngle()
 
     def calibrate_lane_thresholds(self, frame_bgr, exclusion_mask=None, matrix=None):
         print("Calibrating lane thresholds...")
@@ -243,16 +262,10 @@ class WebotsLaneFollower:
         h, w = gray.shape
         roi_mask = np.zeros_like(gray)
         roi_points = np.array([
-            [360, 0],                         # Kiri Atas (Ujung)
-            [910, 0],                         # Kanan Atas (Ujung)
-            # [830, int(h * 0.25)],             # Kanan Atas (Mulai melengkung)
-            # [int(w * 0.8), int(420 * 0.5)],   # Kanan Tengah (Lengkungan masuk)
-            [int(w * 0.51), int(450)], # Kanan Bawah (Leher sempit)
-            # [int(w * 0.51), 490],             # Kanan Dasar
-            # [int(w * 0.49), 490],             # Kiri Dasar
-            [int(w * 0.49), int(450)], # Kiri Bawah (Leher sempit)
-            # [int(w * 0.2), int(420 * 0.5)],   # Kiri Tengah (Lengkungan keluar)
-            # [440, int(h * 0.25)]              # Kiri Atas (Mulai melengkung)
+            [360, 0],                         
+            [910, 0],                         
+            [int(w * 0.51), int(450)], 
+            [int(w * 0.49), int(450)], 
         ], dtype=np.int32)
         cv2.fillPoly(roi_mask, [roi_points], 255)
         gray = cv2.bitwise_and(gray, roi_mask)
@@ -318,6 +331,23 @@ class WebotsLaneFollower:
 
     def run(self):
         print("Starting Webots Lane Follower...")
+
+        # --- ODOMETRY INITIALIZATION ---
+        odom_x = 0.0
+        odom_y = 0.0
+        odom_yaw = 0.0 # Radians
+        last_left_pos = 0.0
+        
+        # If possible, initialize Odom X/Y with initial GPS to match coordinates
+        if self.gps:
+            self.driver.step() # Step once to get sensor data
+            initial_gps = self.gps.getValues()
+            odom_x = initial_gps[0]
+            odom_y = initial_gps[1]
+            # odom_z = initial_gps[2] # We usually ignore Z for 2D odometry
+            # Note: We assume initial yaw is 0 or needs to be fetched from IMU
+            if self.imu:
+                 odom_yaw = self.imu.getRollPitchYaw()[2]
         
         while self.driver.step() != -1:
             key = self.keyboard.getKey()
@@ -334,6 +364,35 @@ class WebotsLaneFollower:
                 self.current_speed = 0.0
                 self.current_steering = 0.0
                 manual_override = True
+
+            # --- ODOMETRY LOGIC ---
+            # 1. Get raw values
+            raw_speed_kmh, raw_steer = self.getspeedsteer()
+            
+            # 2. Add Noise
+            # np.random.normal(mean, standard_deviation)
+            noisy_speed_kmh = raw_speed_kmh + np.random.normal(0, SPEED_NOISE_STD)
+            noisy_steer = raw_steer + np.random.normal(0, STEER_NOISE_STD)
+            speed_mps = noisy_speed_kmh / 3.6
+            
+            # 3. Ensure values are valid numbers
+            if not math.isnan(raw_speed_kmh) and not math.isnan(raw_steer):
+                # 4. Get current wheel rotation (in radians) - approximating linear distance here
+                # Distance = speed * time
+                step_duration_sec = self.timestep / 1000.0
+                
+                # Calculate Distance Traveled this step
+                dist = speed_mps * step_duration_sec
+                
+                # 5. Only update if the car has actually moved
+                if abs(dist) > 0.00001:
+                    # Update orientation (Yaw) using Bicycle Model
+                    # yaw_new = yaw_old + (dist / L) * tan(delta)
+                    odom_yaw += (dist * math.tan(noisy_steer) / WHEEL_BASE)
+                    
+                    # Update position (X and Y)
+                    odom_x += dist * math.cos(odom_yaw)
+                    odom_y -= dist * math.sin(odom_yaw)
 
             # --- Image Capture ---
             raw_image = self.camera.getImage()
@@ -401,7 +460,7 @@ class WebotsLaneFollower:
                             self.current_steering = max(-0.5, min(0.5, steer))
                         self.current_speed = speed
                     
-                    track_pos_est = (None, None)
+                    track_pos_est = (None, None, None)
                     gps_pos = None
                     car_rot = None
                     
@@ -414,36 +473,19 @@ class WebotsLaneFollower:
                         car_yaw = rpy[2] # Global Yaw in radians
                         car_x, car_y, car_z = gps_pos
                         
-                        # 2. Derive Track Heading from Heading Error
-                        # HE = Car_Heading - Track_Heading  => Track_Heading = Car_Heading - HE
-                        # (Note: Verify sign of HE in your controller logic. Usually Left Error is positive)
+                        # Calculate Perpendicular logic for CTE visualization
                         track_heading = car_yaw - he
+                        # t_x = car_x - cte * math.cos(track_heading - math.pi/2)
+                        # t_z = car_z - cte * math.sin(track_heading - math.pi/2)
+                        # t_y = car_y # Webots Y is up/down usually, Z/X is ground plane. 
+                        # NOTE: Standard Webots ENU: X, Y, Z. But often Y is vertical.
+                        # Assuming X=Right, Z=Back/Front, Y=Up.
                         
-                        # 3. Project Car Position to Track Center
-                        # We need to move distance 'CTE' perpendicular to the track heading.
-                        # Perpendicular to track_heading is (track_heading - 90 deg) if CTE > 0 means LEFT
-                        # Standard Webots: X is Right/Left, Z is Forward/Back.
-                        # We calculate the offsets:
-                        # Note: This geometric logic assumes CTE is positive when car is LEFT of track.
-                        # If CTE is positive, we must move RIGHT (negative direction relative to track normal).
-                        
-                        # Calculate perpendicular angle (90 deg to the right)
-                        perp_angle = track_heading - (math.pi / 2)
-                        
-                        # Project
-                        t_x = car_x + abs(cte) * math.cos(perp_angle) * (-1 if cte > 0 else 1)
-                        t_z = car_z + abs(cte) * math.sin(perp_angle) * (-1 if cte > 0 else 1)
-                        t_y = car_y + abs(cte) * math.sin(perp_angle) * (-1 if cte > 0 else 1)
-                        
-                        # Simplified projection if CTE sign convention matches standard:
-                        # t_x = car_x - cte * math.sin(track_heading)  <-- Depends on 0-angle ref
-                        # Let's stick to the rotation logic:
-                        
-                        t_x = car_x - cte * math.cos(track_heading - math.pi/2) # Simplified vector addition
+                        # Simplified viz calc:
+                        t_x = car_x - cte * math.cos(track_heading - math.pi/2)
                         t_z = car_z - cte * math.sin(track_heading - math.pi/2)
                         t_y = car_y - cte * math.sin(track_heading - math.pi/2)
-                        
-                        track_pos_est = (t_x, t_z, t_y)
+                        track_pos_est = (t_x, t_y, t_z)
 
                     # --- Log Data ---
                     self.logger.log(
@@ -455,7 +497,8 @@ class WebotsLaneFollower:
                         he=he,
                         speed=self.current_speed,
                         steer=self.current_steering,
-                        has_lock=has_lock
+                        has_lock=has_lock,
+                        odom=(odom_x, odom_y, odom_yaw) # Pass odometry tuple
                     )
 
                     # Visualization
