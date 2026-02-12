@@ -36,26 +36,37 @@ class DataLogger:
         self.file = open(self.filename, mode='w', newline='', buffering=1)
         self.writer = csv.writer(self.file)
         
-        # Updated Header with Track Position Estimates AND Odometry
+        # Updated Header: Renamed pos_ -> gps_ and added vis_ columns
         header = [
             "timestamp", 
-            "pos_x", "pos_y", "pos_z",       # Car GPS Position
+            "gps_x", "gps_y", "gps_z",       # Car GPS Position (Renamed)
             "track_x", "track_y", "track_z", # Calculated Track Center Position
             "roll", "pitch", "yaw",          # Car Orientation (IMU)
             "cross_track_error", "heading_error", 
             "speed_cmd", "steering_cmd", "has_lock",
-            "odom_x", "odom_y", "odom_yaw"   # <--- ADDED ODOMETRY COLUMNS
+            "odom_x", "odom_y", "odom_yaw",  # Odometry
+            "vis_x", "vis_y", "vis_z",       # <--- ADDED VISION POSE POS
+            "vis_roll", "vis_pitch", "vis_yaw" # <--- ADDED VISION POSE ROT
         ]
         self.writer.writerow(header)
         print(f"Data logger initialized. Writing to: {self.filename}")
 
-    def log(self, timestamp, pos, track_pos, rot, cte, he, speed, steer, has_lock, odom):
+    def log(self, timestamp, pos, track_pos, rot, cte, he, speed, steer, has_lock, odom, vision_pose):
         px, py, pz = pos if pos is not None else (None, None, None)
         tx, ty, tz = track_pos if track_pos is not None else (None, None)
         roll, pitch, yaw = rot if rot is not None else (None, None, None)
         
         # Unpack Odometry
         ox, oy, oyaw = odom
+
+        # Unpack Vision Pose
+        # vision_pose is expected to be ((x,y,z), (r,p,y)) or None
+        if vision_pose and vision_pose[0] is not None:
+            v_trans, v_rot = vision_pose
+            vx, vy, vz = v_trans[0], v_trans[1], v_trans[2]
+            vr, vp, vy_ang = v_rot[0], v_rot[1], v_rot[2]
+        else:
+            vx, vy, vz, vr, vp, vy_ang = (None, None, None, None, None, None)
 
         row = [
             round(float(timestamp), 4),
@@ -67,9 +78,12 @@ class DataLogger:
             round(float(speed), 2),
             round(float(steer), 4),
             int(has_lock),
-            round(float(ox), 4), # Odom X
-            round(float(oy), 4), # Odom Y
-            round(float(oyaw), 4) # Odom Yaw
+            round(float(ox), 4), 
+            round(float(oy), 4), 
+            round(float(oyaw), 4),
+            # Vision Columns
+            vx, vy, vz,
+            vr, vp, vy_ang
         ]
         self.writer.writerow(row)
 
@@ -209,10 +223,6 @@ class WebotsLaneFollower:
         self.pose_estimator = GlobalPoseEstimator(TAG_MAP_FILE, self.tag_size_meters)
 
     def getspeedsteer(self):
-        """Helper to get current real speed and steering angle from Webots"""
-        # getCurrentSpeed() returns speed in km/h or m/s depending on model, 
-        # but usually m/s in new nodes, km/h in Driver.
-        # Driver.getCurrentSpeed() returns km/h usually. 
         return self.driver.getCurrentSpeed(), self.driver.getSteeringAngle()
 
     def calibrate_lane_thresholds(self, frame_bgr, exclusion_mask=None, matrix=None):
@@ -332,20 +342,15 @@ class WebotsLaneFollower:
     def run(self):
         print("Starting Webots Lane Follower...")
 
-        # --- ODOMETRY INITIALIZATION ---
         odom_x = 0.0
         odom_y = 0.0
-        odom_yaw = 0.0 # Radians
-        last_left_pos = 0.0
+        odom_yaw = 0.0 
         
-        # If possible, initialize Odom X/Y with initial GPS to match coordinates
         if self.gps:
-            self.driver.step() # Step once to get sensor data
+            self.driver.step() 
             initial_gps = self.gps.getValues()
             odom_x = initial_gps[0]
             odom_y = initial_gps[1]
-            # odom_z = initial_gps[2] # We usually ignore Z for 2D odometry
-            # Note: We assume initial yaw is 0 or needs to be fetched from IMU
             if self.imu:
                  odom_yaw = self.imu.getRollPitchYaw()[2]
         
@@ -353,7 +358,10 @@ class WebotsLaneFollower:
             key = self.keyboard.getKey()
             manual_override = False
             
-            # --- Input Handling ---
+            # Reset vision pose variables for this frame
+            vis_trans = None
+            vis_rot = None
+            
             if key == Keyboard.UP:
                 self.current_speed += 1.0
                 manual_override = True
@@ -366,31 +374,16 @@ class WebotsLaneFollower:
                 manual_override = True
 
             # --- ODOMETRY LOGIC ---
-            # 1. Get raw values
             raw_speed_kmh, raw_steer = self.getspeedsteer()
-            
-            # 2. Add Noise
-            # np.random.normal(mean, standard_deviation)
             noisy_speed_kmh = raw_speed_kmh + np.random.normal(0, SPEED_NOISE_STD)
             noisy_steer = raw_steer + np.random.normal(0, STEER_NOISE_STD)
             speed_mps = noisy_speed_kmh / 3.6
             
-            # 3. Ensure values are valid numbers
             if not math.isnan(raw_speed_kmh) and not math.isnan(raw_steer):
-                # 4. Get current wheel rotation (in radians) - approximating linear distance here
-                # Distance = speed * time
                 step_duration_sec = self.timestep / 1000.0
-                
-                # Calculate Distance Traveled this step
                 dist = speed_mps * step_duration_sec
-                
-                # 5. Only update if the car has actually moved
                 if abs(dist) > 0.00001:
-                    # Update orientation (Yaw) using Bicycle Model
-                    # yaw_new = yaw_old + (dist / L) * tan(delta)
                     odom_yaw += (dist * math.tan(noisy_steer) / WHEEL_BASE)
-                    
-                    # Update position (X and Y)
                     odom_x += dist * math.cos(odom_yaw)
                     odom_y -= dist * math.sin(odom_yaw)
 
@@ -405,7 +398,6 @@ class WebotsLaneFollower:
                 tags = self.at_detector.detect(gray, estimate_tag_pose=False, camera_params=self.camera_params, tag_size=self.tag_size_meters)
                 tag_centers = {tag.tag_id: tag.center for tag in tags}
                 
-                # --- Create Exclusion Mask for Lane Detector ---
                 h, w = frame_bgr.shape[:2]
                 tag_mask = np.ones((h, w), dtype=np.uint8) * 255
                 MASK_EXPANSION = 1.4
@@ -417,8 +409,8 @@ class WebotsLaneFollower:
                         pts = expanded_corners.astype(np.int32).reshape((-1, 1, 2))
                         cv2.fillPoly(tag_mask, [pts], 0)
 
-                    # Update global pose for visualization (optional)
-                    self.pose_estimator.estimate_pose(tags, self.camera_matrix)
+                    # --- CAPTURE POSE ESTIMATOR RESULT HERE ---
+                    vis_success, vis_trans, vis_rot = self.pose_estimator.estimate_pose(tags, self.camera_matrix)
 
                 # --- BEV Calibration Logic ---
                 required_ids = {0, 1, 2, 3}
@@ -465,23 +457,14 @@ class WebotsLaneFollower:
                     car_rot = None
                     
                     if self.gps and self.imu and has_lock:
-                        # 1. Get raw sensor data
                         gps_pos = self.gps.getValues() # [x, y, z]
                         rpy = self.imu.getRollPitchYaw() # [roll, pitch, yaw]
                         car_rot = np.degrees(rpy)
                         
-                        car_yaw = rpy[2] # Global Yaw in radians
+                        car_yaw = rpy[2] 
                         car_x, car_y, car_z = gps_pos
                         
-                        # Calculate Perpendicular logic for CTE visualization
                         track_heading = car_yaw - he
-                        # t_x = car_x - cte * math.cos(track_heading - math.pi/2)
-                        # t_z = car_z - cte * math.sin(track_heading - math.pi/2)
-                        # t_y = car_y # Webots Y is up/down usually, Z/X is ground plane. 
-                        # NOTE: Standard Webots ENU: X, Y, Z. But often Y is vertical.
-                        # Assuming X=Right, Z=Back/Front, Y=Up.
-                        
-                        # Simplified viz calc:
                         t_x = car_x - cte * math.cos(track_heading - math.pi/2)
                         t_z = car_z - cte * math.sin(track_heading - math.pi/2)
                         t_y = car_y - cte * math.sin(track_heading - math.pi/2)
@@ -498,10 +481,10 @@ class WebotsLaneFollower:
                         speed=self.current_speed,
                         steer=self.current_steering,
                         has_lock=has_lock,
-                        odom=(odom_x, odom_y, odom_yaw) # Pass odometry tuple
+                        odom=(odom_x, odom_y, odom_yaw),
+                        vision_pose=(vis_trans, vis_rot) # <--- Passed vision data here
                     )
 
-                    # Visualization
                     cv2.imshow("BEV Driver", debug_img)
                     cv2.imshow("Raw Camera", frame_bgr)
                 else:
