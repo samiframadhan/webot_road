@@ -15,8 +15,14 @@ from bev_calibrator import BEVCalibrator
 # --- Configuration ---
 MAX_SPEED_WEBOTS = 50.0 
 CRUISING_SPEED = 100.0
-STANLEY_K = 1.5
+STANLEY_K = 3.0
 TAG_MAP_FILE = "output2.yaml" 
+FRONT_SLOT_Y = 0.0
+FRONT_SLOT_Z = 0.45
+FRONT_SLOT_X = 3.85
+CAMERA_X = 0.0954
+CAMERA_Y = 0.0
+CAMERA_Z = 0.169114
 
 # --- Odometry Configuration ---
 WHEEL_RADIUS = 0.40  # Meters (Approx for BMW X5 in Webots)
@@ -94,8 +100,7 @@ class DataLogger:
 class StanleyController:
     @staticmethod
     def calculate_steering(cross_track_error, heading_error, speed, k=0.8, epsilon=1e-5):
-        denom = abs(speed*0.277778) + epsilon
-        cross_track_term = math.atan2(k * -cross_track_error, denom)
+        cross_track_term = math.atan2(k * cross_track_error, abs(speed) + epsilon)
         return heading_error + cross_track_term
     
     @staticmethod
@@ -111,6 +116,32 @@ class GlobalPoseEstimator:
         self.tag_map = self._load_map(tag_map_path)
         self.world_corners = {} 
         self._generate_world_corners()
+        
+        # Camera Offset relative to Car Base (Rear Axle Center)
+        # Coordinate System: Car Body Frame (X-Forward, Y-Left, Z-Up)
+        self.frontSlotY = 0.0
+        self.frontSlotZ = 0.45
+        self.frontSlotX = 3.85
+        self.cameraX = 0.0954
+        self.cameraY = 0.0
+        self.cameraZ = 0.169114 + 0.375
+        
+        # This vector represents the Camera's position inside the Car's coordinate system
+        self.t_base_to_cam = np.array([
+            self.cameraX + self.frontSlotX, 
+            self.cameraY + self.frontSlotY, 
+            self.cameraZ + self.frontSlotZ
+        ])
+
+        # Standard Rotation from Car Body Frame (Flu) to Camera Optical Frame (Rub)
+        # Car X (Fwd)  -> Cam Z (Fwd)
+        # Car Y (Left) -> Cam -X (Right)
+        # Car Z (Up)   -> Cam -Y (Down)
+        self.R_car_to_cam = np.array([
+            [0, -1,  0],
+            [0,  0, -1],
+            [1,  0,  0]
+        ])
 
     def _load_map(self, path):
         try:
@@ -133,9 +164,15 @@ class GlobalPoseEstimator:
             self.world_corners[tag_id] = w_corners.astype(np.float32)
 
     def estimate_pose(self, tags, camera_matrix, dist_coeffs=None):
+        # Legacy method (wrapper or original logic if needed)
+        return self.estimate_pose2(tags, camera_matrix, dist_coeffs)
+    
+    def estimate_pose2(self, tags, camera_matrix, dist_coeffs=None):
         obj_points = []
         img_points = []
         found_tags = 0
+        
+        # 1. Collect Point Correspondences
         for tag in tags:
             tid = tag.tag_id
             if tid in self.world_corners:
@@ -144,29 +181,45 @@ class GlobalPoseEstimator:
                 found_tags += 1
         
         if found_tags < 2: return False, None, None
+        
         obj_points = np.array(obj_points, dtype=np.float32)
         img_points = np.array(img_points, dtype=np.float32)
         if dist_coeffs is None: dist_coeffs = np.zeros((4,1))
 
+        # 2. Solve PnP (Find Camera in World)
+        # rvec/tvec here represent World -> Camera Optical Frame
         success, rvec, tvec = cv2.solvePnP(obj_points, img_points, camera_matrix, dist_coeffs, flags=cv2.SOLVEPNP_SQPNP)
         if not success: return False, None, None
 
-        R, _ = cv2.Rodrigues(rvec)
-        R_inv = R.T
-        cam_pos_world = -R_inv @ tvec
+        # 3. Get Camera World Pose
+        R_world_to_cam, _ = cv2.Rodrigues(rvec)
+        R_cam_to_world = R_world_to_cam.T
+        P_cam_world = -R_cam_to_world @ tvec # Camera Position in World
         
-        # Calculate Euler Angles
-        sy = math.sqrt(R_inv[0,0] * R_inv[0,0] +  R_inv[1,0] * R_inv[1,0])
+        # 4. Calculate Car Body World Rotation
+        # R_car_world = R_cam_world * (R_car_cam)^-1
+        R_car_to_world = R_cam_to_world @ self.R_car_to_cam.T
+
+        # 5. Calculate Car Body World Position (Center Rear Axle)
+        # P_car = P_cam - (Rotation_Car_to_World * Offset_Cam_in_Car)
+        offset_in_world = R_car_to_world @ self.t_base_to_cam.reshape(3, 1)
+        P_car_world = P_cam_world - offset_in_world
+
+        # 6. Extract Euler Angles (Roll, Pitch, Yaw) for the CAR (not camera)
+        # Using R_car_to_world ensures we get the vehicle's heading, not the camera's looking direction
+        sy = math.sqrt(R_car_to_world[0,0] * R_car_to_world[0,0] +  R_car_to_world[1,0] * R_car_to_world[1,0])
         singular = sy < 1e-6
+
         if not singular:
-            roll = math.atan2(R_inv[2,1] , R_inv[2,2])
-            pitch = math.atan2(-R_inv[2,0], sy)
-            yaw = math.atan2(R_inv[1,0], R_inv[0,0])
+            roll = math.atan2(R_car_to_world[2,1] , R_car_to_world[2,2])
+            pitch = math.atan2(-R_car_to_world[2,0], sy)
+            yaw = math.atan2(R_car_to_world[1,0], R_car_to_world[0,0])
         else:
-            roll = math.atan2(-R_inv[1,2], R_inv[1,1])
-            pitch = math.atan2(-R_inv[2,0], sy)
+            roll = math.atan2(-R_car_to_world[1,2], R_car_to_world[1,1])
+            pitch = math.atan2(-R_car_to_world[2,0], sy)
             yaw = 0
-        return True, cam_pos_world.flatten(), np.degrees([roll, pitch, yaw])
+
+        return True, P_car_world.flatten(), np.degrees([roll, pitch, yaw])
 
 class WebotsLaneFollower:
     def __init__(self):
@@ -263,6 +316,28 @@ class WebotsLaneFollower:
             self.calibrated = True
             print(f"Calibration Successful. Peak: {used_peak}, Range: {self.lane_thresholds}")
 
+    def calculate_cte(ppm, cx, cy, m, b):
+        v_axle = (cx, cy)
+        if m < 1e-6:
+            x_int, y_int = cy, b
+        else:
+            perp_m = -1 / m
+            perp_b = cy - perp_m * cx
+            x_int = (perp_b - b) / (m - perp_m)
+            y_int = m * x_int + b
+        
+        int_point = (x_int, y_int)
+        error_pixels = math.hypot(x_int - cx, y_int - cy)
+        # if x_int < cx:
+        #     error_pixels = -error_pixels
+        x_at_axle_line = (cy - b)/m if abs(m) > 1e-6 else float('inf')
+
+        if x_at_axle_line < cx:
+            error_pixels = -error_pixels
+
+        return error_pixels, int_point
+        
+    
     def process_vision_pipeline(self, warped_img, cam_center, ppm, exclusion_mask=None):
         debug_frame = warped_img.copy()
         gray = cv2.cvtColor(warped_img, cv2.COLOR_BGR2GRAY)
@@ -309,29 +384,45 @@ class WebotsLaneFollower:
             p_far = path_points[1] 
             cv2.line(debug_frame, p_close, p_far, (0, 255, 255), 2)
             
+            vx, vy = cam_center
             dx = p_far[0] - p_close[0]
             dy = p_far[1] - p_close[1]
             path_angle = math.atan2(-dy, dx) 
             he = (math.pi / 2) - path_angle
 
-            vx, vy = cam_center
-            if abs(dx) < 1e-5: 
-                cte_pixels = vx - p_close[0]
-                proj_pt = (p_close[0], int(vy))
-            else:
-                m = dy / dx
-                c_val = p_close[1] - (m * p_close[0])
-                cte_pixels = (m * vx - vy + c_val) / math.sqrt(m**2 + 1)
-                epsilon = 1e-5
-                m_perp = -1/(m+epsilon)
-                c_perp = vy - (m_perp * vx)
-                inter_x = (c_perp - c_val) / (m - m_perp)
-                inter_y = m * inter_x + c_val
-                proj_pt = (int(inter_x), int(inter_y))
+            # epsilon = 1e-6
+            # if abs(dx) > 1e-6:
+            #     m = dy/(dx)
+            #     b = p_close[1] - (m * p_close[0])
+            #     he = (math.pi/2) - math.atan2(-dy,(dx))
+            #     error_pixels, int_point = self.calculate_cte(vx, vy, m, b)
+            #     cte = error_pixels / ppm
+
+            # Vector from path point to car (vx, vy)
+            # path vector is (dx, dy)
+            # car vector relative to p_close is (vx - p_close[0], vy - p_close[1])
             
-            cte = cte_pixels / ppm
+            # Cross product formula: (x2-x1)*(y0-y1) - (y2-y1)*(x0-x1)
+            # Here: dx * (vy - p_close[1]) - dy * (vx - p_close[0])
+            
+            cross_prod = dx * (vy - p_close[1]) - dy * (vx - p_close[0])
+            path_len = math.hypot(dx, dy)
+            
+            # Signed distance in pixels
+            cte_pixels = cross_prod / path_len
+            
+            # Calculate projection point for visualization (optional but good for debug)
+            # This is the dot product projection
+            t = ((vx - p_close[0]) * dx + (vy - p_close[1]) * dy) / (path_len * path_len)
+            proj_x = int(p_close[0] + t * dx)
+            proj_y = int(p_close[1] + t * dy)
+            proj_pt = (proj_x, proj_y)
+            
+            cte = -cte_pixels / ppm
             has_lock = True
-            
+            # proj_pt = (int(int_point[0]),int(int_point[1]))
+            # print(proj_pt)
+        
             cv2.line(debug_frame, (int(vx), int(vy)), proj_pt, (0, 0, 255), 2)
             cv2.circle(debug_frame, proj_pt, 4, (0, 0, 255), -1)
             cv2.putText(debug_frame, f"CTE: {cte:.2f}m", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
@@ -410,7 +501,7 @@ class WebotsLaneFollower:
                         cv2.fillPoly(tag_mask, [pts], 0)
 
                     # --- CAPTURE POSE ESTIMATOR RESULT HERE ---
-                    vis_success, vis_trans, vis_rot = self.pose_estimator.estimate_pose(tags, self.camera_matrix)
+                    vis_success, vis_trans, vis_rot = self.pose_estimator.estimate_pose2(tags, self.camera_matrix)
 
                 # --- BEV Calibration Logic ---
                 required_ids = {0, 1, 2, 3}
@@ -446,19 +537,46 @@ class WebotsLaneFollower:
                     if has_lock and not manual_override:
                         speed = StanleyController.calculate_velocity(cte, he, CRUISING_SPEED)
                         steer = StanleyController.calculate_steering(cte, he, speed, k=STANLEY_K)
-                        if abs(self.current_steering - steer) > 0.1:
-                            self.current_steering = self.current_steering + (0.01 * (steer/abs(steer)))
-                        else:
-                            self.current_steering = max(-0.5, min(0.5, steer))
+                        self.current_steering = steer
+                        # if abs(self.current_steering - steer) > 0.1:
+                        #     self.current_steering = self.current_steering + (0.01 * (steer/abs(steer)))
+                        # else:
+                        #     self.current_steering = max(-0.5, min(0.5, steer))
                         self.current_speed = speed
-                    
+
+                    # ==========================================
+                    #  VISUALIZE STEERING ON DEBUG FRAME
+                    # ==========================================
+                    if self.bev_center is not None:
+                        cx, cy = int(self.bev_center[0]), int(self.bev_center[1])
+                        line_length = self.current_speed  # Length of the steering line in pixels
+                        
+                        # Calculate end point based on steering angle
+                        # Webots: Positive steer is LEFT.
+                        # Image X: Decreases to the left.
+                        # Image Y: Decreases upwards.
+                        end_x = int(cx - line_length * math.sin(self.current_steering))
+                        end_y = int(cy - line_length * math.cos(self.current_steering))
+                        
+                        # Draw the steering line (Red)
+                        cv2.line(debug_img, (cx, cy), (end_x, end_y), (0, 0, 255), 3)
+                        # Draw the pivot point (Blue dot)
+                        cv2.circle(debug_img, (cx, cy), 5, (255, 0, 0), -1)
+                        # Draw the tip (Red dot)
+                        cv2.circle(debug_img, (end_x, end_y), 5, (0, 0, 255), -1)
+                        
+                        # Optional: Add text
+                        cv2.putText(debug_img, f"Steer: {self.current_steering:.3f}", (10, 70), 
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+                    # ==========================================
+
                     track_pos_est = (None, None, None)
                     gps_pos = None
                     car_rot = None
                     
                     if self.gps and self.imu and has_lock:
-                        gps_pos = self.gps.getValues() # [x, y, z]
-                        rpy = self.imu.getRollPitchYaw() # [roll, pitch, yaw]
+                        gps_pos = self.gps.getValues() 
+                        rpy = self.imu.getRollPitchYaw()
                         car_rot = np.degrees(rpy)
                         
                         car_yaw = rpy[2] 
@@ -482,7 +600,7 @@ class WebotsLaneFollower:
                         steer=self.current_steering,
                         has_lock=has_lock,
                         odom=(odom_x, odom_y, odom_yaw),
-                        vision_pose=(vis_trans, vis_rot) # <--- Passed vision data here
+                        vision_pose=(vis_trans, vis_rot) 
                     )
 
                     cv2.imshow("BEV Driver", debug_img)
