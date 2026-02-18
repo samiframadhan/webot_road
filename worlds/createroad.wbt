@@ -22,8 +22,8 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation 0.025444198767111875 0.9986987912381341 0.04419634745756539 0.559974780361226
-  position -21.04777051310676 -0.25977204157335054 16.354878448999713
+  orientation 0.013778950270745922 -0.9983225671357685 -0.056233375115541495 5.8016091349101675
+  position -32.7096906785272 -0.16448069699438328 17.977411722362184
   follow "vehicle"
   followType "Mounted Shot"
 }
@@ -32,53 +32,61 @@ TexturedBackground {
 TexturedBackgroundLight {
 }
 Solid {
-  translation 2.35 -0.78 0.01
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColorMap ImageTexture {
-          url [
-            "../protos/textures/apriltags/fixed/tag36_11_00002_fixed.png"
-          ]
-          repeatS FALSE
-          repeatT FALSE
-          filtering 0
-        }
-        metalness 0
-      }
-      geometry Plane {
-        size 0.5 0.5
-      }
-    }
-  ]
-  name "solid(1)"
-}
-Solid {
-  translation 2.35 0.72 0.01
-  children [
-    Shape {
-      appearance PBRAppearance {
-        baseColorMap ImageTexture {
-          url [
-            "../protos/textures/apriltags/fixed/tag36_11_00003_fixed.png"
-          ]
-          repeatS FALSE
-          repeatT FALSE
-          filtering 0
-        }
-        metalness 0
-      }
-      geometry Plane {
-        size 0.5 0.5
-      }
-    }
-  ]
-  name "solid(2)"
-}
-Solid {
+  translation 2.35 0.7 0
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00003_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(2)"
+    }
+    Solid {
+      translation 0 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00002_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(1)"
+    }
+  ]
+  name "solid(26)"
+  rotationStep 0.0872665
+}
+Solid {
+  translation 3.35 0.7 0
+  children [
+    Solid {
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -100,7 +108,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -123,13 +131,14 @@ Solid {
     }
   ]
   name "solid(5)"
+  rotationStep 0.0872665
 }
 Solid {
   translation 10.007 0.059925 0
-  rotation 0 0 1 0.05
+  rotation 0 0 1 -0.1245353071795865
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -151,7 +160,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -174,13 +183,14 @@ Solid {
     }
   ]
   name "solid(3)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation 20.0146 0.560352 0
-  rotation 0 0 1 0.1
+  translation 20.1916 -1.2008 0
+  rotation 0 0 1 -0.16179530717958635
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -202,7 +212,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -225,13 +235,14 @@ Solid {
     }
   ]
   name "solid(4)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation 29.9368 2.0776 0
-  rotation 0 0 1 0.25
+  translation 39.4673 -21.7464 0
+  rotation 0 0 1 -1.495325307179586
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -253,7 +264,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -276,13 +287,14 @@ Solid {
     }
   ]
   name "solid(6)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation 38.7402 5.13791 0
-  rotation 0 0 1 0.53
+  translation 54.0197 -57.3021 0
+  rotation 0 0 1 -0.2553953071795858
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -304,7 +316,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -327,13 +339,14 @@ Solid {
     }
   ]
   name "solid(7)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation 47.0809 10.547 0
-  rotation 0 0 1 0.791799
+  translation 98.8848 -39.7248 0
+  rotation 0 0 1 1.40266
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -355,7 +368,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -378,13 +391,14 @@ Solid {
     }
   ]
   name "solid(8)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation 53.9046 17.6908 0
-  rotation 0 0 1 0.92
+  translation 116.679 -1.96904 0
+  rotation 0 0 -1 -0.22187530717958648
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -406,7 +420,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -429,13 +443,14 @@ Solid {
     }
   ]
   name "solid(9)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation 59.5033 25.8538 0
+  translation 155.955 12.0003 0
   rotation 0 0 1 1.13
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -457,7 +472,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -480,13 +495,14 @@ Solid {
     }
   ]
   name "solid(10)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation 62.9704 35.2182 0
-  rotation 0 0 1 1.47
+  translation 143.71 57.8344 0
+  rotation 0 0 1 2.95353
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -508,7 +524,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -531,13 +547,14 @@ Solid {
     }
   ]
   name "solid(11)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation 61.9624 45.1081 0
-  rotation 0 0 1 2.25
+  translation 101.892 77.3449 0
+  rotation 0 0 -1 -1.813665307179586
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -559,7 +576,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -582,13 +599,14 @@ Solid {
     }
   ]
   name "solid(12)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation 54.9445 52.1757 0
-  rotation 0 0 1 2.64
+  translation 84.5998 117.649 0
+  rotation 0 0 1 2.81453
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -610,7 +628,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -633,13 +651,14 @@ Solid {
     }
   ]
   name "solid(13)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation 45.9189 56.3553 0
-  rotation 0 0 1 2.9018
+  translation 40.9251 98.9955 0
+  rotation 0 0 -1 1.63606
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -661,7 +680,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -684,13 +703,14 @@ Solid {
     }
   ]
   name "solid(14)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation 36.1478 58.2992 0
-  rotation 0 0 1 3
+  translation 27.2772 63.6132 0
+  rotation 0 0 1 -2.759585307179586
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -712,7 +732,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -735,13 +755,14 @@ Solid {
     }
   ]
   name "solid(15)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation 26.1721 59.1006 0
-  rotation 0 0 -1 3.1331853071795863
+  translation -14.5781 50.4532 0
+  rotation 0 0 1 -2.0859853071795866
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -763,7 +784,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -786,13 +807,14 @@ Solid {
     }
   ]
   name "solid(16)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation 16.2058 58.6438 0
-  rotation 0 0 -1 3.0331853071795862
+  translation -14.5543 9.5864 0
+  rotation 0 0 -1 0.938789
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -814,7 +836,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -837,13 +859,14 @@ Solid {
     }
   ]
   name "solid(17)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation 6.3683 56.989 0
+  translation 12.339 36.8684 0
   rotation 0 0 -1 2.853185307179586
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -865,7 +888,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -888,13 +911,14 @@ Solid {
     }
   ]
   name "solid(18)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation -3.08628 53.5804 0
+  translation 3.84579 43.2635 0
   rotation 0 0 1 -2.55
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -916,7 +940,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -939,13 +963,14 @@ Solid {
     }
   ]
   name "solid(19)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation -11.0329 47.6012 0
+  translation -2.09623 39.8046 0
   rotation 0 0 -1 2.2882
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -967,7 +992,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -990,13 +1015,14 @@ Solid {
     }
   ]
   name "solid(20)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation -16.5979 40.0539 0
+  translation -5.97055 35.8194 0
   rotation 0 0 -1 1.95
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -1018,7 +1044,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -1041,13 +1067,14 @@ Solid {
     }
   ]
   name "solid(21)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation -19.4208 30.6396 0
+  translation -7.67138 29.9429 0
   rotation 0 0 -1 1.63
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -1069,7 +1096,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -1092,13 +1119,14 @@ Solid {
     }
   ]
   name "solid(22)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation -18.612 20.7571 0
+  translation -8.25637 22.2233 0
   rotation 0 0 -1 1.43
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -1120,7 +1148,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -1143,13 +1171,14 @@ Solid {
     }
   ]
   name "solid(23)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation -15.5293 11.874 0
+  translation -5.87464 18.2336 0
   rotation 0 0 -1 0.988201
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -1171,7 +1200,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -1194,13 +1223,14 @@ Solid {
     }
   ]
   name "solid(24)"
+  rotationStep 0.0872665
 }
 Solid {
-  translation -9.21101 3.84376 0
+  translation -1.85099 15.8005 0
   rotation 0 0 1 -0.551795307179586
   children [
     Solid {
-      translation 3.35 0.72 0.01
+      translation 0 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -1222,7 +1252,7 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 3.35 -0.78 0.01
+      translation 0 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
@@ -1245,9 +1275,10 @@ Solid {
     }
   ]
   name "solid(25)"
+  rotationStep 0.0872665
 }
 BmwX5 {
-  translation -4.04546 0.00537472 0.605595
+  translation -4.04537 0.605375 0.605595
   rotation 0.00022246486268542086 -0.9997208509297469 -0.02362563704300305 0.009117639309515783
   controller "testing"
   sensorsSlotFront [
@@ -1321,44 +1352,7 @@ DEF LOOP Solid {
       ]
       bottom TRUE
       wayPoints [
-        40 -30 0, 
-        40 -40 0, 
-        44 -54 0, 
-        60 -60 0, 
-        80 -60 0, 
-        94 -54 0, 
-        100 -40 0, 
-        100 -20 0, 
-        106 -6 0, 
-        120 0 0, 
-        140 0 0, 
-        154 6 0, 
-        160 20 0, 
-        160 40 0, 
-        154 54 0, 
-        140 60 0, 
-        120 60 0, 
-        106 66 0, 
-        100 80 0, 
-        100 100 0, 
-        94 114 0, 
-        80 120 0, 
-        60 120 0, 
-        46 114 0, 
-        40 100 0, 
-        40 80 0, 
-        34 66 0, 
-        20 60 0, 
-        0 60 0, 
-        -14 54 0, 
-        -20 40 0, 
-        -20 20 0, 
-        -14 6 0, 
-        0 0 0,  
-        20 0 0, 
-        34 -6 0, 
-        40 -20 0, 
-        40 -30 0
+        40 -30 0, 40 -40 0, 44 -54 0, 60 -60 0, 80 -60 0, 94 -54 0, 100 -40 0, 100 -20 0, 106 -6 0, 120 0 0, 140 0 0, 154 6 0, 160 20 0, 160 40 0, 154 54 0, 140 60 0, 120 60 0, 106 66 0, 100 80 0, 100 100 0, 94 114 0, 80 120 0, 60 120 0, 46 114 0, 40 100 0, 40 80 0, 34 66 0, 20 60 0, 0 60 0, -14 54 0, -20 40 0, -20 20 0, -14 6 0, 0 0 0, 20 0 0, 34 -6 0, 40 -20 0, 40 -30 0
       ]
       splineSubdivision 6
       rightBorderBoundingObject TRUE
