@@ -16,7 +16,7 @@ from bev_calibrator import BEVCalibrator
 MAX_SPEED_WEBOTS = 50.0 
 CRUISING_SPEED = 100.0
 STANLEY_K = 3.0
-TAG_MAP_FILE = "output2.yaml" 
+TAG_MAP_FILE = "output3.yaml" 
 FRONT_SLOT_Y = 0.0
 FRONT_SLOT_Z = 0.45
 FRONT_SLOT_X = 3.85
@@ -153,13 +153,29 @@ class GlobalPoseEstimator:
 
     def _generate_world_corners(self):
         s = self.tag_size / 2.0
-        local_corners = np.array([[-s, s, 0], [s, s, 0], [s, -s, 0], [-s, -s, 0]])
+        # CORRECTION: 
+        # AprilTag detectors usually return corners in Counter-Clockwise order:
+        # 0: Bottom-Left, 1: Bottom-Right, 2: Top-Right, 3: Top-Left
+        # We must match this order in 3D space relative to the tag center.
+        # Assuming Webots Plane: X-Right, Y-Up (Texture coordinates map this way)
+        local_corners = np.array([
+            [-s, -s, 0], # Bottom-Left
+            [ s, -s, 0], # Bottom-Right
+            [ s,  s, 0], # Top-Right
+            [-s,  s, 0]  # Top-Left
+        ])
+        
         for tag_id, pose_data in self.tag_map.items():
             if len(pose_data) != 7: continue
             tx, ty, tz, rx, ry, rz, angle = pose_data
+            
+            # Reconstruct Rotation Matrix
             rot_vec = np.array([rx, ry, rz]) * angle
             R, _ = cv2.Rodrigues(rot_vec)
             t = np.array([tx, ty, tz])
+            
+            # Apply transformation: P_world = R * P_local + t
+            # Note: np.dot(local, R.T) is equivalent to (R * local.T).T
             w_corners = np.dot(local_corners, R.T) + t
             self.world_corners[tag_id] = w_corners.astype(np.float32)
 
@@ -198,7 +214,7 @@ class GlobalPoseEstimator:
         
         # 4. Calculate Car Body World Rotation
         # R_car_world = R_cam_world * (R_car_cam)^-1
-        R_car_to_world = R_cam_to_world @ self.R_car_to_cam.T
+        R_car_to_world = R_cam_to_world @ self.R_car_to_cam
 
         # 5. Calculate Car Body World Position (Center Rear Axle)
         # P_car = P_cam - (Rotation_Car_to_World * Offset_Cam_in_Car)
