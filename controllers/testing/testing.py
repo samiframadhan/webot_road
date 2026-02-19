@@ -111,14 +111,14 @@ class StanleyController:
         return max(0.2, desired_speed)
 
 class GlobalPoseEstimator:
-    def __init__(self, tag_map_path, tag_size_meters):
+    def __init__(self, tag_map_path, tag_size_meters, ref_path_file="ref_path.csv"):
         self.tag_size = tag_size_meters
         self.tag_map = self._load_map(tag_map_path)
         self.world_corners = {} 
         self._generate_world_corners()
         
+        # --- Vehicle Geometry (Car Body Frame) ---
         # Camera Offset relative to Car Base (Rear Axle Center)
-        # Coordinate System: Car Body Frame (X-Forward, Y-Left, Z-Up)
         self.frontSlotY = 0.0
         self.frontSlotZ = 0.45
         self.frontSlotX = 3.85
@@ -126,22 +126,29 @@ class GlobalPoseEstimator:
         self.cameraY = 0.0
         self.cameraZ = 0.169114 + 0.375
         
-        # This vector represents the Camera's position inside the Car's coordinate system
+        # Total distance from Rear Axle to Camera (approximate X-offset)
+        self.cam_offset_x = self.frontSlotX + self.cameraX
+
         self.t_base_to_cam = np.array([
-            self.cameraX + self.frontSlotX, 
+            self.cam_offset_x, 
             self.cameraY + self.frontSlotY, 
             self.cameraZ + self.frontSlotZ
         ])
 
-        # Standard Rotation from Car Body Frame (Flu) to Camera Optical Frame (Rub)
-        # Car X (Fwd)  -> Cam Z (Fwd)
-        # Car Y (Left) -> Cam -X (Right)
-        # Car Z (Up)   -> Cam -Y (Down)
+        # Rotation from Car Body (Flu) to Camera Optical (Rub)
         self.R_car_to_cam = np.array([
             [0, -1,  0],
             [0,  0, -1],
             [1,  0,  0]
         ])
+
+        # --- Localization State ---
+        # Internal state [x, y, yaw_radians] (Global Frame)
+        self.state = None 
+        
+        # Load Reference Path for fallback estimation
+        self.ref_path = self._load_ref_path(ref_path_file)
+        self.last_closest_idx = 0
 
     def _load_map(self, path):
         try:
@@ -150,45 +157,184 @@ class GlobalPoseEstimator:
         except Exception as e:
             print(f"Warning: Could not load tag map: {e}")
             return {}
+            
+    def _load_ref_path(self, path):
+        """
+        Loads reference path assuming CSV format: timestamp, smooth_x, smooth_y
+        We want columns 1 and 2 (X and Y).
+        """
+        try:
+            data = []
+            with open(path, 'r') as f:
+                reader = csv.reader(f)
+                header_skipped = False
+                for idx, row in enumerate(reader):
+                    # Only process every 10th row
+                    if idx % 10 != 0:
+                        continue
+                    
+                    # Simple heuristic to skip header if it contains text
+                    try:
+                        # Try to convert the first item to float to check if it's a data row
+                        float(row[0])
+                    except ValueError:
+                        continue 
+                    
+                    try:
+                        # FIX: Read index 1 (x) and 2 (y), not 0 and 1
+                        if len(row) >= 3:
+                            data.append([float(row[1]), float(row[2])])
+                    except ValueError:
+                        continue 
+            
+            if not data:
+                print(f"Warning: Reference path {path} was empty or invalid.")
+                return np.empty((0, 2))
+                
+            print(f"Loaded reference path with {len(data)} points.")
+            return np.array(data)
+        except Exception as e:
+            print(f"Warning: Could not load ref path {path}: {e}")
+            return np.empty((0, 2))
 
     def _generate_world_corners(self):
         s = self.tag_size / 2.0
-        # CORRECTION: 
-        # AprilTag detectors usually return corners in Counter-Clockwise order:
-        # 0: Bottom-Left, 1: Bottom-Right, 2: Top-Right, 3: Top-Left
-        # We must match this order in 3D space relative to the tag center.
-        # Assuming Webots Plane: X-Right, Y-Up (Texture coordinates map this way)
         local_corners = np.array([
-            [-s, -s, 0], # Bottom-Left
-            [ s, -s, 0], # Bottom-Right
-            [ s,  s, 0], # Top-Right
-            [-s,  s, 0]  # Top-Left
+            [-s, -s, 0], [ s, -s, 0], [ s,  s, 0], [-s,  s, 0]
         ])
         
         for tag_id, pose_data in self.tag_map.items():
             if len(pose_data) != 7: continue
             tx, ty, tz, rx, ry, rz, angle = pose_data
-            
-            # Reconstruct Rotation Matrix
             rot_vec = np.array([rx, ry, rz]) * angle
             R, _ = cv2.Rodrigues(rot_vec)
             t = np.array([tx, ty, tz])
-            
-            # Apply transformation: P_world = R * P_local + t
-            # Note: np.dot(local, R.T) is equivalent to (R * local.T).T
             w_corners = np.dot(local_corners, R.T) + t
             self.world_corners[tag_id] = w_corners.astype(np.float32)
 
-    def estimate_pose(self, tags, camera_matrix, dist_coeffs=None):
-        # Legacy method (wrapper or original logic if needed)
-        return self.estimate_pose2(tags, camera_matrix, dist_coeffs)
-    
-    def estimate_pose2(self, tags, camera_matrix, dist_coeffs=None):
+    def _update_odometry(self, speed_mps, steering_angle, dt):
+        """
+        Step 1: Odometry Update.
+        Updates the state prediction based on vehicle kinematics.
+        """
+        if self.state is None: return
+
+        x, y, yaw = self.state
+        dist = speed_mps * dt
+        
+        # Kinematic Bicycle Model
+        yaw += (dist * math.tan(steering_angle) / WHEEL_BASE)
+        x += dist * math.cos(yaw)
+        y += dist * math.sin(yaw)
+        
+        self.state = np.array([x, y, yaw])
+
+    def _estimate_pose_from_lane(self, cte, he):
+        """
+        Step 3: Estimate Global Pose from Lane Data.
+        Uses adaptive window search with global fallback.
+        """
+        if self.state is None or len(self.ref_path) < 2:
+            return False
+
+        # 1. Get latest estimate (from Odometry)
+        est_x, est_y, est_yaw = self.state
+
+        # 2. Find Closest Point
+        # First try a local window search for efficiency
+        search_radius = 50 
+        start_idx = max(0, self.last_closest_idx - search_radius)
+        end_idx = min(len(self.ref_path), self.last_closest_idx + search_radius)
+        
+        # Handle edge cases
+        if start_idx >= end_idx:
+            start_idx = 0
+            end_idx = len(self.ref_path)
+
+        local_path = self.ref_path[start_idx:end_idx]
+        if len(local_path) == 0: return False
+
+        distances = np.linalg.norm(local_path - np.array([est_x, est_y]), axis=1)
+        min_local_idx = np.argmin(distances)
+        min_dist = distances[min_local_idx]
+        best_idx = start_idx + min_local_idx
+
+        # SAFETY CHECK: If the closest point in window is too far (>5m), 
+        # it suggests we are lost or initialized wrong. Trigger Global Search.
+        if min_dist > 5.0:
+            # print("Window search drift detected. Performing Global Search...")
+            all_distances = np.linalg.norm(self.ref_path - np.array([est_x, est_y]), axis=1)
+            best_idx = np.argmin(all_distances)
+            # We don't update min_dist here as we just need the index
+
+        self.last_closest_idx = best_idx 
+        
+        # 3. Determine Path Segment (A -> B)
+        # We need a line segment to project onto. Use (best-1 -> best) or (best -> best+1)
+        if best_idx < len(self.ref_path) - 1:
+            # Prefer forward segment
+            pA = self.ref_path[best_idx]
+            pB = self.ref_path[best_idx + 1]
+        elif best_idx > 0:
+            # Fallback to backward segment if at end
+            pA = self.ref_path[best_idx - 1]
+            pB = self.ref_path[best_idx]
+        else:
+            return False
+
+        # 4. Project Odometry Position onto Line Segment (Longitudinal Correction)
+        # Vector A->B
+        AB = pB - pA
+        AB_len_sq = np.dot(AB, AB)
+        if AB_len_sq < 1e-6: return False
+        
+        # Vector A->Est
+        A_Est = np.array([est_x, est_y]) - pA
+        
+        # Scalar projection factor 't'
+        t = np.dot(A_Est, AB) / AB_len_sq
+        t = np.clip(t, 0.0, 1.0) # Clamp to segment
+        
+        # The "Projected Point" on the path (Longitudinally aligned with Odometry)
+        p_on_line = pA + t * AB
+
+        # 5. Calculate Heading of the Segment
+        theta_r = math.atan2(AB[1], AB[0])
+
+        # 6. Apply Lateral Correction (CTE)
+        # New Global Heading
+        global_yaw = theta_r - he
+        
+        # Calculate Sensor Position based on Projected Point + CTE
+        # CTE direction is perpendicular to path heading
+        x_front = p_on_line[0] + cte * math.sin(theta_r)
+        y_front = p_on_line[1] - cte * math.cos(theta_r)
+
+        # 7. Transform back to Rear Axle
+        x_rear = x_front - self.cam_offset_x * math.cos(global_yaw)
+        y_rear = y_front - self.cam_offset_x * math.sin(global_yaw)
+
+        # 8. Update State
+        self.state = np.array([x_rear, y_rear, global_yaw])
+        return True
+
+    def update(self, tags, camera_matrix, dist_coeffs, speed_mps, steering, dt, cte=None, he=None, has_lane_lock=False):
+        """
+        Main update loop.
+        """
+        
+        # --- Step 1: Predict (Odometry)  ---
+        # We always run this first so self.state reflects the motion since last frame
+        self._update_odometry(speed_mps, steering, dt)
+
+        # --- Step 2: Absolute Fix (AprilTags) ---
+        tag_success = False
+        vis_trans, vis_rot = None, None
+        
         obj_points = []
         img_points = []
         found_tags = 0
         
-        # 1. Collect Point Correspondences
         for tag in tags:
             tid = tag.tag_id
             if tid in self.world_corners:
@@ -196,46 +342,50 @@ class GlobalPoseEstimator:
                 img_points.extend(tag.corners)
                 found_tags += 1
         
-        if found_tags < 2: return False, None, None
-        
-        obj_points = np.array(obj_points, dtype=np.float32)
-        img_points = np.array(img_points, dtype=np.float32)
-        if dist_coeffs is None: dist_coeffs = np.zeros((4,1))
+        if found_tags >= 2:
+            if dist_coeffs is None: dist_coeffs = np.zeros((4,1))
+            success, rvec, tvec = cv2.solvePnP(np.array(obj_points), np.array(img_points), camera_matrix, dist_coeffs, flags=cv2.SOLVEPNP_SQPNP)
+            
+            if success:
+                R_world_to_cam, _ = cv2.Rodrigues(rvec)
+                R_cam_to_world = R_world_to_cam.T
+                P_cam_world = -R_cam_to_world @ tvec
+                
+                R_car_to_world = R_cam_to_world @ self.R_car_to_cam
+                offset_in_world = R_car_to_world @ self.t_base_to_cam.reshape(3, 1)
+                P_car_world = P_cam_world - offset_in_world
+                
+                sy = math.sqrt(R_car_to_world[0,0]**2 + R_car_to_world[1,0]**2)
+                yaw = math.atan2(R_car_to_world[1,0], R_car_to_world[0,0]) if sy > 1e-6 else 0
+                
+                self.state = np.array([P_car_world[0,0], P_car_world[1,0], yaw])
+                tag_success = True
+                
+                vis_trans = P_car_world.flatten()
+                vis_rot = np.degrees([0, 0, yaw]) 
+                
+                # Update closest index on ref path so the next frame's lane search is close
+                if len(self.ref_path) > 0:
+                     dists = np.linalg.norm(self.ref_path - self.state[:2], axis=1)
+                     self.last_closest_idx = np.argmin(dists)
 
-        # 2. Solve PnP (Find Camera in World)
-        # rvec/tvec here represent World -> Camera Optical Frame
-        success, rvec, tvec = cv2.solvePnP(obj_points, img_points, camera_matrix, dist_coeffs, flags=cv2.SOLVEPNP_SQPNP)
-        if not success: return False, None, None
+        # --- Step 3: Lane Correction (if Tags failed) ---
+        if not tag_success and has_lane_lock and cte is not None and he is not None:
+             # This uses the self.state updated in Step 1 to find the closest ref point
+             lane_success = self._estimate_pose_from_lane(cte, he)
+             if lane_success:
+                 vis_trans = np.array([self.state[0], self.state[1], 0.0]) 
+                 vis_rot = np.degrees([0, 0, self.state[2]])
 
-        # 3. Get Camera World Pose
-        R_world_to_cam, _ = cv2.Rodrigues(rvec)
-        R_cam_to_world = R_world_to_cam.T
-        P_cam_world = -R_cam_to_world @ tvec # Camera Position in World
-        
-        # 4. Calculate Car Body World Rotation
-        # R_car_world = R_cam_world * (R_car_cam)^-1
-        R_car_to_world = R_cam_to_world @ self.R_car_to_cam
+        # Fallback for visualization if we only have Odometry
+        if not tag_success and not has_lane_lock and self.state is not None:
+             vis_trans = np.array([self.state[0], self.state[1], 0.0])
+             vis_rot = np.degrees([0, 0, self.state[2]])
 
-        # 5. Calculate Car Body World Position (Center Rear Axle)
-        # P_car = P_cam - (Rotation_Car_to_World * Offset_Cam_in_Car)
-        offset_in_world = R_car_to_world @ self.t_base_to_cam.reshape(3, 1)
-        P_car_world = P_cam_world - offset_in_world
+        return tag_success, vis_trans, vis_rot
 
-        # 6. Extract Euler Angles (Roll, Pitch, Yaw) for the CAR (not camera)
-        # Using R_car_to_world ensures we get the vehicle's heading, not the camera's looking direction
-        sy = math.sqrt(R_car_to_world[0,0] * R_car_to_world[0,0] +  R_car_to_world[1,0] * R_car_to_world[1,0])
-        singular = sy < 1e-6
-
-        if not singular:
-            roll = math.atan2(R_car_to_world[2,1] , R_car_to_world[2,2])
-            pitch = math.atan2(-R_car_to_world[2,0], sy)
-            yaw = math.atan2(R_car_to_world[1,0], R_car_to_world[0,0])
-        else:
-            roll = math.atan2(-R_car_to_world[1,2], R_car_to_world[1,1])
-            pitch = math.atan2(-R_car_to_world[2,0], sy)
-            yaw = 0
-
-        return True, P_car_world.flatten(), np.degrees([roll, pitch, yaw])
+    def estimate_pose2(self, tags, camera_matrix, dist_coeffs=None):
+        return False, None, None
 
 class WebotsLaneFollower:
     def __init__(self):
@@ -406,14 +556,6 @@ class WebotsLaneFollower:
             path_angle = math.atan2(-dy, dx) 
             he = (math.pi / 2) - path_angle
 
-            # epsilon = 1e-6
-            # if abs(dx) > 1e-6:
-            #     m = dy/(dx)
-            #     b = p_close[1] - (m * p_close[0])
-            #     he = (math.pi/2) - math.atan2(-dy,(dx))
-            #     error_pixels, int_point = self.calculate_cte(vx, vy, m, b)
-            #     cte = error_pixels / ppm
-
             # Vector from path point to car (vx, vy)
             # path vector is (dx, dy)
             # car vector relative to p_close is (vx - p_close[0], vy - p_close[1])
@@ -436,8 +578,6 @@ class WebotsLaneFollower:
             
             cte = -cte_pixels / ppm
             has_lock = True
-            # proj_pt = (int(int_point[0]),int(int_point[1]))
-            # print(proj_pt)
         
             cv2.line(debug_frame, (int(vx), int(vy)), proj_pt, (0, 0, 255), 2)
             cv2.circle(debug_frame, proj_pt, 4, (0, 0, 255), -1)
@@ -516,9 +656,6 @@ class WebotsLaneFollower:
                         pts = expanded_corners.astype(np.int32).reshape((-1, 1, 2))
                         cv2.fillPoly(tag_mask, [pts], 0)
 
-                    # --- CAPTURE POSE ESTIMATOR RESULT HERE ---
-                    vis_success, vis_trans, vis_rot = self.pose_estimator.estimate_pose2(tags, self.camera_matrix)
-
                 # --- BEV Calibration Logic ---
                 required_ids = {0, 1, 2, 3}
                 present_ids = set(tag_centers.keys())
@@ -550,14 +687,20 @@ class WebotsLaneFollower:
                     warped_mask = cv2.warpPerspective(tag_mask, matrix, (w, h))
                     cte, he, has_lock, debug_img = self.process_vision_pipeline(warped, cam_center, ppm, warped_mask)
                     
+                    # --- GLOBAL POSE ESTIMATOR UPDATE ---
+                    # Now we pass all data (Tags, Speed, Steer, CTE, HE) to the estimator
+                    # It handles the fusion logic (Tags > Lane/RefPath > Odometry)
+                    # Note: We pass raw_steer (or noisy_steer) depending on realism preference. Using noisy to match odometry calc.
+                    vis_success, vis_trans, vis_rot = self.pose_estimator.update(
+                        tags, self.camera_matrix, None, 
+                        speed_mps, noisy_steer, self.timestep/1000.0,
+                        cte, he, has_lock
+                    )
+
                     if has_lock and not manual_override:
                         speed = StanleyController.calculate_velocity(cte, he, CRUISING_SPEED)
                         steer = StanleyController.calculate_steering(cte, he, speed, k=STANLEY_K)
                         self.current_steering = steer
-                        # if abs(self.current_steering - steer) > 0.1:
-                        #     self.current_steering = self.current_steering + (0.01 * (steer/abs(steer)))
-                        # else:
-                        #     self.current_steering = max(-0.5, min(0.5, steer))
                         self.current_speed = speed
 
                     # ==========================================
@@ -565,23 +708,13 @@ class WebotsLaneFollower:
                     # ==========================================
                     if self.bev_center is not None:
                         cx, cy = int(self.bev_center[0]), int(self.bev_center[1])
-                        line_length = self.current_speed  # Length of the steering line in pixels
-                        
-                        # Calculate end point based on steering angle
-                        # Webots: Positive steer is LEFT.
-                        # Image X: Decreases to the left.
-                        # Image Y: Decreases upwards.
+                        line_length = self.current_speed  
                         end_x = int(cx - line_length * math.sin(self.current_steering))
                         end_y = int(cy - line_length * math.cos(self.current_steering))
                         
-                        # Draw the steering line (Red)
                         cv2.line(debug_img, (cx, cy), (end_x, end_y), (0, 0, 255), 3)
-                        # Draw the pivot point (Blue dot)
                         cv2.circle(debug_img, (cx, cy), 5, (255, 0, 0), -1)
-                        # Draw the tip (Red dot)
                         cv2.circle(debug_img, (end_x, end_y), 5, (0, 0, 255), -1)
-                        
-                        # Optional: Add text
                         cv2.putText(debug_img, f"Steer: {self.current_steering:.3f}", (10, 70), 
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
                     # ==========================================
@@ -590,19 +723,10 @@ class WebotsLaneFollower:
                     gps_pos = None
                     car_rot = None
                     
-                    if self.gps and self.imu and has_lock:
+                    if self.gps and self.imu:
                         gps_pos = self.gps.getValues() 
                         rpy = self.imu.getRollPitchYaw()
                         car_rot = np.degrees(rpy)
-                        
-                        car_yaw = rpy[2] 
-                        car_x, car_y, car_z = gps_pos
-                        
-                        track_heading = car_yaw - he
-                        t_x = car_x - cte * math.cos(track_heading - math.pi/2)
-                        t_z = car_z - cte * math.sin(track_heading - math.pi/2)
-                        t_y = car_y - cte * math.sin(track_heading - math.pi/2)
-                        track_pos_est = (t_x, t_y, t_z)
 
                     # --- Log Data ---
                     self.logger.log(
