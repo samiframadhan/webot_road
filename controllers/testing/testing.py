@@ -170,8 +170,8 @@ class GlobalPoseEstimator:
                 header_skipped = False
                 for idx, row in enumerate(reader):
                     # Only process every 10th row
-                    if idx % 10 != 0:
-                        continue
+                    # if idx % 15 != 0:
+                    #     continue
                     
                     # Simple heuristic to skip header if it contains text
                     try:
@@ -232,40 +232,24 @@ class GlobalPoseEstimator:
     def _estimate_pose_from_lane(self, cte, he):
         """
         Step 3: Estimate Global Pose from Lane Data.
-        Uses adaptive window search with global fallback.
+        Modified to search for the closest path point relative to the camera 
+        (front of the vehicle) rather than the rear axle.
         """
         if self.state is None or len(self.ref_path) < 2:
             return False
 
-        # 1. Get latest estimate (from Odometry)
+        # 1. Get latest estimate (from Odometry, rear axle)
         est_x, est_y, est_yaw = self.state
 
-        # 2. Find Closest Point
-        # First try a local window search for efficiency
-        search_radius = 50 
-        start_idx = max(0, self.last_closest_idx - search_radius)
-        end_idx = min(len(self.ref_path), self.last_closest_idx + search_radius)
-        
-        # Handle edge cases
-        if start_idx >= end_idx:
-            start_idx = 0
-            end_idx = len(self.ref_path)
+        # --- NEW: Calculate Estimated Camera Position ---
+        # Project forward by cam_offset_x along the current yaw
+        cam_est_x = est_x + self.cam_offset_x * math.cos(est_yaw)
+        cam_est_y = est_y + self.cam_offset_x * math.sin(est_yaw)
 
-        local_path = self.ref_path[start_idx:end_idx]
-        if len(local_path) == 0: return False
-
-        distances = np.linalg.norm(local_path - np.array([est_x, est_y]), axis=1)
-        min_local_idx = np.argmin(distances)
-        min_dist = distances[min_local_idx]
-        best_idx = start_idx + min_local_idx
-
-        # SAFETY CHECK: If the closest point in window is too far (>5m), 
-        # it suggests we are lost or initialized wrong. Trigger Global Search.
-        if min_dist > 5.0:
-            # print("Window search drift detected. Performing Global Search...")
-            all_distances = np.linalg.norm(self.ref_path - np.array([est_x, est_y]), axis=1)
-            best_idx = np.argmin(all_distances)
-            # We don't update min_dist here as we just need the index
+        # 2. Find Closest Point to the CAMERA (GLOBAL SEARCH ALWAYS)
+        # Calculate distance to ALL points in the reference path from the camera
+        all_distances = np.linalg.norm(self.ref_path - np.array([cam_est_x, cam_est_y]), axis=1)
+        best_idx = np.argmin(all_distances)
 
         self.last_closest_idx = best_idx 
         
@@ -282,20 +266,20 @@ class GlobalPoseEstimator:
         else:
             return False
 
-        # 4. Project Odometry Position onto Line Segment (Longitudinal Correction)
+        # 4. Project CAMERA Position onto Line Segment (Longitudinal Correction)
         # Vector A->B
         AB = pB - pA
         AB_len_sq = np.dot(AB, AB)
         if AB_len_sq < 1e-6: return False
         
-        # Vector A->Est
-        A_Est = np.array([est_x, est_y]) - pA
+        # Vector A -> Estimated Camera
+        A_EstCam = np.array([cam_est_x, cam_est_y]) - pA
         
         # Scalar projection factor 't'
-        t = np.dot(A_Est, AB) / AB_len_sq
+        t = np.dot(A_EstCam, AB) / AB_len_sq
         t = np.clip(t, 0.0, 1.0) # Clamp to segment
         
-        # The "Projected Point" on the path (Longitudinally aligned with Odometry)
+        # The "Projected Point" on the path (Longitudinally aligned with the Camera)
         p_on_line = pA + t * AB
 
         # 5. Calculate Heading of the Segment
@@ -303,19 +287,28 @@ class GlobalPoseEstimator:
 
         # 6. Apply Lateral Correction (CTE)
         # New Global Heading
-        global_yaw = theta_r - he
+        global_yaw = theta_r + he
         
         # Calculate Sensor Position based on Projected Point + CTE
         # CTE direction is perpendicular to path heading
         x_front = p_on_line[0] + cte * math.sin(theta_r)
         y_front = p_on_line[1] - cte * math.cos(theta_r)
 
-        # 7. Transform back to Rear Axle
+        # 7. Transform back to Rear Axle (The "Target" State)
         x_rear = x_front - self.cam_offset_x * math.cos(global_yaw)
         y_rear = y_front - self.cam_offset_x * math.sin(global_yaw)
 
-        # 8. Update State
-        self.state = np.array([x_rear, y_rear, global_yaw])
+        # 8. Update State by calculating Error and incrementing
+        # Measure error: Target (Lane Calc) - Current (Odometry)
+        error_x = x_rear - est_x
+        error_y = y_rear - est_y
+        error_yaw = global_yaw - est_yaw
+
+        # Apply the error
+        self.state[0] += error_x
+        self.state[1] += error_y
+        self.state[2] += error_yaw
+        
         return True
 
     def update(self, tags, camera_matrix, dist_coeffs, speed_mps, steering, dt, cte=None, he=None, has_lane_lock=False):
