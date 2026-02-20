@@ -23,6 +23,7 @@ FRONT_SLOT_X = 3.85
 CAMERA_X = 0.0954
 CAMERA_Y = 0.0
 CAMERA_Z = 0.169114
+POSE_LOOKAHEAD_M = 2.5 # Meters to project ahead for pose estimation
 
 # --- Odometry Configuration ---
 WHEEL_RADIUS = 0.40  # Meters (Approx for BMW X5 in Webots)
@@ -170,8 +171,8 @@ class GlobalPoseEstimator:
                 header_skipped = False
                 for idx, row in enumerate(reader):
                     # Only process every 10th row
-                    # if idx % 15 != 0:
-                    #     continue
+                    if idx % 25 != 0:
+                        continue
                     
                     # Simple heuristic to skip header if it contains text
                     try:
@@ -287,12 +288,12 @@ class GlobalPoseEstimator:
 
         # 6. Apply Lateral Correction (CTE)
         # New Global Heading
-        global_yaw = theta_r + he
+        global_yaw = theta_r - he
         
         # Calculate Sensor Position based on Projected Point + CTE
         # CTE direction is perpendicular to path heading
-        x_front = p_on_line[0] + cte * math.sin(theta_r)
-        y_front = p_on_line[1] - cte * math.cos(theta_r)
+        x_front = pA[0] + cte * math.sin(theta_r)
+        y_front = pA[1] - cte * math.cos(theta_r)
 
         # 7. Transform back to Rear Axle (The "Target" State)
         x_rear = x_front - self.cam_offset_x * math.cos(global_yaw)
@@ -310,8 +311,66 @@ class GlobalPoseEstimator:
         self.state[2] += error_yaw
         
         return True
+    
+    def _estimate_pose_from_lane2(self, cte, he, lookahead_dist=0.0):
+        if self.state is None or len(self.ref_path) < 2:
+            return False
 
-    def update(self, tags, camera_matrix, dist_coeffs, speed_mps, steering, dt, cte=None, he=None, has_lane_lock=False):
+        est_x, est_y, est_yaw = self.state
+
+        # --- NEW: Calculate Estimated PROJECTED Position ---
+        total_offset = self.cam_offset_x + lookahead_dist
+        proj_est_x = est_x + total_offset * math.cos(est_yaw)
+        proj_est_y = est_y + total_offset * math.sin(est_yaw)
+
+        # Find Closest Point to the PROJECTED CAMERA 
+        all_distances = np.linalg.norm(self.ref_path - np.array([proj_est_x, proj_est_y]), axis=1)
+        best_idx = np.argmin(all_distances)
+
+        self.last_closest_idx = best_idx 
+        
+        if best_idx < len(self.ref_path) - 1:
+            pA = self.ref_path[best_idx]
+            pB = self.ref_path[best_idx + 1]
+        elif best_idx > 0:
+            pA = self.ref_path[best_idx - 1]
+            pB = self.ref_path[best_idx]
+        else:
+            return False
+
+        AB = pB - pA
+        AB_len_sq = np.dot(AB, AB)
+        if AB_len_sq < 1e-6: return False
+        
+        # Vector A -> Estimated Projected Camera
+        A_EstProj = np.array([proj_est_x, proj_est_y]) - pA
+        
+        t = np.dot(A_EstProj, AB) / AB_len_sq
+        t = np.clip(t, 0.0, 1.0) 
+        p_on_line = pA + t * AB
+
+        theta_r = math.atan2(AB[1], AB[0])
+        global_yaw = theta_r + he
+        
+        # CTE direction is perpendicular to path heading
+        x_front = p_on_line[0] + cte * math.sin(theta_r)
+        y_front = p_on_line[1] - cte * math.cos(theta_r)
+
+        # Transform back to Rear Axle using the total offset
+        x_rear = x_front - total_offset * math.cos(global_yaw)
+        y_rear = y_front - total_offset * math.sin(global_yaw)
+
+        error_x = x_rear - est_x
+        error_y = y_rear - est_y
+        error_yaw = global_yaw - est_yaw
+
+        self.state[0] += error_x
+        self.state[1] += error_y
+        self.state[2] += error_yaw
+        
+        return True
+
+    def update(self, tags, camera_matrix, dist_coeffs, speed_mps, steering, dt, cte=None, he=None, has_lane_lock=False, lookahead_dist=0.0):
         """
         Main update loop.
         """
@@ -365,7 +424,8 @@ class GlobalPoseEstimator:
         # --- Step 3: Lane Correction (if Tags failed) ---
         if not tag_success and has_lane_lock and cte is not None and he is not None:
              # This uses the self.state updated in Step 1 to find the closest ref point
-             lane_success = self._estimate_pose_from_lane(cte, he)
+            #  lane_success = self._estimate_pose_from_lane(cte, he)
+             lane_success = self._estimate_pose_from_lane2(cte, he, lookahead_dist)
              if lane_success:
                  vis_trans = np.array([self.state[0], self.state[1], 0.0]) 
                  vis_rot = np.degrees([0, 0, self.state[2]])
@@ -496,8 +556,7 @@ class WebotsLaneFollower:
 
         return error_pixels, int_point
         
-    
-    def process_vision_pipeline(self, warped_img, cam_center, ppm, exclusion_mask=None):
+    def process_vision_pipeline(self, warped_img, cam_center, ppm, exclusion_mask=None, lookahead_m=0.0):
         debug_frame = warped_img.copy()
         gray = cv2.cvtColor(warped_img, cv2.COLOR_BGR2GRAY)
         if exclusion_mask is not None:
@@ -535,6 +594,7 @@ class WebotsLaneFollower:
         path_points.sort(key=lambda p: p[1], reverse=True)
 
         cte = 0.0
+        proj_cte = 0.0 # NEW: Projected CTE
         he = 0.0
         has_lock = False
 
@@ -544,40 +604,46 @@ class WebotsLaneFollower:
             cv2.line(debug_frame, p_close, p_far, (0, 255, 255), 2)
             
             vx, vy = cam_center
+            
+            # Project camera center forward in BEV image space (Y goes up/negative)
+            vy_proj = vy - (lookahead_m * ppm) 
+
             dx = p_far[0] - p_close[0]
             dy = p_far[1] - p_close[1]
             path_angle = math.atan2(-dy, dx) 
             he = (math.pi / 2) - path_angle
-
-            # Vector from path point to car (vx, vy)
-            # path vector is (dx, dy)
-            # car vector relative to p_close is (vx - p_close[0], vy - p_close[1])
-            
-            # Cross product formula: (x2-x1)*(y0-y1) - (y2-y1)*(x0-x1)
-            # Here: dx * (vy - p_close[1]) - dy * (vx - p_close[0])
-            
-            cross_prod = dx * (vy - p_close[1]) - dy * (vx - p_close[0])
             path_len = math.hypot(dx, dy)
             
-            # Signed distance in pixels
+            # --- 1. Base CTE (for Stanley Control) ---
+            cross_prod = dx * (vy - p_close[1]) - dy * (vx - p_close[0])
             cte_pixels = cross_prod / path_len
+            cte = -cte_pixels / ppm
             
-            # Calculate projection point for visualization (optional but good for debug)
-            # This is the dot product projection
+            # --- 2. Projected CTE (for Pose Estimation) ---
+            proj_cross_prod = dx * (vy_proj - p_close[1]) - dy * (vx - p_close[0])
+            proj_cte_pixels = proj_cross_prod / path_len
+            proj_cte = -proj_cte_pixels / ppm
+            
+            has_lock = True
+        
+            # Visualization for Base CTE
             t = ((vx - p_close[0]) * dx + (vy - p_close[1]) * dy) / (path_len * path_len)
             proj_x = int(p_close[0] + t * dx)
             proj_y = int(p_close[1] + t * dy)
-            proj_pt = (proj_x, proj_y)
-            
-            cte = -cte_pixels / ppm
-            has_lock = True
-        
-            cv2.line(debug_frame, (int(vx), int(vy)), proj_pt, (0, 0, 255), 2)
-            cv2.circle(debug_frame, proj_pt, 4, (0, 0, 255), -1)
-            cv2.putText(debug_frame, f"CTE: {cte:.2f}m", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
-            cv2.putText(debug_frame, f"HE: {math.degrees(he):.1f}deg", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+            cv2.line(debug_frame, (int(vx), int(vy)), (proj_x, proj_y), (0, 0, 255), 2)
+            cv2.circle(debug_frame, (proj_x, proj_y), 4, (0, 0, 255), -1)
 
-        return cte, he, has_lock, debug_frame
+            # Visualization for Projected CTE
+            t_proj = ((vx - p_close[0]) * dx + (vy_proj - p_close[1]) * dy) / (path_len * path_len)
+            proj_x2 = int(p_close[0] + t_proj * dx)
+            proj_y2 = int(p_close[1] + t_proj * dy)
+            cv2.line(debug_frame, (int(vx), int(vy_proj)), (proj_x2, proj_y2), (255, 0, 255), 2)
+            cv2.circle(debug_frame, (int(vx), int(vy_proj)), 4, (255, 0, 255), -1)
+
+            cv2.putText(debug_frame, f"CTE: {cte:.2f}m", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+            cv2.putText(debug_frame, f"Proj CTE: {proj_cte:.2f}m", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
+
+        return cte, proj_cte, he, has_lock, debug_frame
 
     def run(self):
         print("Starting Webots Lane Follower...")
@@ -678,18 +744,22 @@ class WebotsLaneFollower:
                 # --- Main Lane Logic & Data Logging ---
                 if self.bev_calibrated and warped is not None:
                     warped_mask = cv2.warpPerspective(tag_mask, matrix, (w, h))
-                    cte, he, has_lock, debug_img = self.process_vision_pipeline(warped, cam_center, ppm, warped_mask)
+                    
+                    # Pass the LOOKAHEAD param and unpack the newly returned proj_cte
+                    cte, proj_cte, he, has_lock, debug_img = self.process_vision_pipeline(
+                        warped, cam_center, ppm, warped_mask, lookahead_m=POSE_LOOKAHEAD_M
+                    )
                     
                     # --- GLOBAL POSE ESTIMATOR UPDATE ---
-                    # Now we pass all data (Tags, Speed, Steer, CTE, HE) to the estimator
-                    # It handles the fusion logic (Tags > Lane/RefPath > Odometry)
-                    # Note: We pass raw_steer (or noisy_steer) depending on realism preference. Using noisy to match odometry calc.
+                    # Feed the PROJ_CTE to the pose estimator, along with the lookahead distance
                     vis_success, vis_trans, vis_rot = self.pose_estimator.update(
                         tags, self.camera_matrix, None, 
                         speed_mps, noisy_steer, self.timestep/1000.0,
-                        cte, he, has_lock
+                        cte=proj_cte, he=he, has_lane_lock=has_lock, lookahead_dist=POSE_LOOKAHEAD_M
                     )
 
+                    # --- STANLEY CONTROLLER ---
+                    # Feed the STANDARD CTE to the controller 
                     if has_lock and not manual_override:
                         speed = StanleyController.calculate_velocity(cte, he, CRUISING_SPEED)
                         steer = StanleyController.calculate_steering(cte, he, speed, k=STANLEY_K)
