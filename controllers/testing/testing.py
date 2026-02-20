@@ -43,7 +43,7 @@ class DataLogger:
         self.file = open(self.filename, mode='w', newline='', buffering=1)
         self.writer = csv.writer(self.file)
         
-        # Updated Header: Renamed pos_ -> gps_ and added vis_ columns
+        # Updated Header: Renamed pos_ -> gps_ and added vis_ columns + theta_r
         header = [
             "timestamp", 
             "gps_x", "gps_y", "gps_z",       # Car GPS Position (Renamed)
@@ -52,13 +52,14 @@ class DataLogger:
             "cross_track_error", "heading_error", 
             "speed_cmd", "steering_cmd", "has_lock",
             "odom_x", "odom_y", "odom_yaw",  # Odometry
-            "vis_x", "vis_y", "vis_z",       # <--- ADDED VISION POSE POS
-            "vis_roll", "vis_pitch", "vis_yaw" # <--- ADDED VISION POSE ROT
+            "vis_x", "vis_y", "vis_z",       # Vision POSE POS
+            "vis_roll", "vis_pitch", "vis_yaw", # Vision POSE ROT
+            "theta_r"                        # Path heading
         ]
         self.writer.writerow(header)
         print(f"Data logger initialized. Writing to: {self.filename}")
 
-    def log(self, timestamp, pos, track_pos, rot, cte, he, speed, steer, has_lock, odom, vision_pose):
+    def log(self, timestamp, pos, track_pos, rot, cte, he, speed, steer, has_lock, odom, vision_pose, theta_r):
         px, py, pz = pos if pos is not None else (None, None, None)
         tx, ty, tz = track_pos if track_pos is not None else (None, None)
         roll, pitch, yaw = rot if rot is not None else (None, None, None)
@@ -90,7 +91,8 @@ class DataLogger:
             round(float(oyaw), 4),
             # Vision Columns
             vx, vy, vz,
-            vr, vp, vy_ang
+            vr, vp, vy_ang,
+            round(float(theta_r), 4) if theta_r is not None else None
         ]
         self.writer.writerow(row)
 
@@ -160,10 +162,6 @@ class GlobalPoseEstimator:
             return {}
             
     def _load_ref_path(self, path):
-        """
-        Loads reference path assuming CSV format: timestamp, smooth_x, smooth_y
-        We want columns 1 and 2 (X and Y).
-        """
         try:
             data = []
             with open(path, 'r') as f:
@@ -237,7 +235,7 @@ class GlobalPoseEstimator:
         (front of the vehicle) rather than the rear axle.
         """
         if self.state is None or len(self.ref_path) < 2:
-            return False
+            return False, None
 
         # 1. Get latest estimate (from Odometry, rear axle)
         est_x, est_y, est_yaw = self.state
@@ -265,13 +263,13 @@ class GlobalPoseEstimator:
             pA = self.ref_path[best_idx - 1]
             pB = self.ref_path[best_idx]
         else:
-            return False
+            return False, None
 
         # 4. Project CAMERA Position onto Line Segment (Longitudinal Correction)
         # Vector A->B
         AB = pB - pA
         AB_len_sq = np.dot(AB, AB)
-        if AB_len_sq < 1e-6: return False
+        if AB_len_sq < 1e-6: return False, None
         
         # Vector A -> Estimated Camera
         A_EstCam = np.array([cam_est_x, cam_est_y]) - pA
@@ -310,53 +308,69 @@ class GlobalPoseEstimator:
         self.state[1] += error_y
         self.state[2] += error_yaw
         
-        return True
+        return True, theta_r
     
     def _estimate_pose_from_lane2(self, cte, he, lookahead_dist=0.0):
         if self.state is None or len(self.ref_path) < 2:
-            return False
+            return False, None
 
         est_x, est_y, est_yaw = self.state
 
-        # --- NEW: Calculate Estimated PROJECTED Position ---
+        # Calculate Estimated PROJECTED Position
         total_offset = self.cam_offset_x + lookahead_dist
         proj_est_x = est_x + total_offset * math.cos(est_yaw)
         proj_est_y = est_y + total_offset * math.sin(est_yaw)
+        p_est = np.array([proj_est_x, proj_est_y])
 
-        # Find Closest Point to the PROJECTED CAMERA 
-        all_distances = np.linalg.norm(self.ref_path - np.array([proj_est_x, proj_est_y]), axis=1)
-        best_idx = np.argmin(all_distances)
+        # FIX 1: Local Search Window (Prevents map-snapping/jumps)
+        search_window = 30 # Points to check forward/backward
+        if hasattr(self, 'last_closest_idx') and self.last_closest_idx is not None:
+            start_idx = max(0, self.last_closest_idx - search_window)
+            end_idx = min(len(self.ref_path), self.last_closest_idx + search_window)
+            window_indices = np.arange(start_idx, end_idx)
+            
+            distances = np.linalg.norm(self.ref_path[start_idx:end_idx] - p_est, axis=1)
+            local_best = np.argmin(distances)
+            best_idx = window_indices[local_best]
+        else:
+            # Global fallback
+            all_distances = np.linalg.norm(self.ref_path - p_est, axis=1)
+            best_idx = np.argmin(all_distances)
 
         self.last_closest_idx = best_idx 
         
-        if best_idx < len(self.ref_path) - 1:
-            pA = self.ref_path[best_idx]
-            pB = self.ref_path[best_idx + 1]
-        elif best_idx > 0:
-            pA = self.ref_path[best_idx - 1]
-            pB = self.ref_path[best_idx]
+        # FIX 2: Correct Segment Selection
+        if best_idx == 0:
+            pA, pB = self.ref_path[0], self.ref_path[1]
+        elif best_idx == len(self.ref_path) - 1:
+            pA, pB = self.ref_path[-2], self.ref_path[-1]
         else:
-            return False
+            # Check if we are between (best-1, best) or (best, best+1)
+            dist_prev = np.linalg.norm(self.ref_path[best_idx - 1] - p_est)
+            dist_next = np.linalg.norm(self.ref_path[best_idx + 1] - p_est)
+            
+            if dist_prev < dist_next:
+                pA, pB = self.ref_path[best_idx - 1], self.ref_path[best_idx]
+            else:
+                pA, pB = self.ref_path[best_idx], self.ref_path[best_idx + 1]
 
         AB = pB - pA
         AB_len_sq = np.dot(AB, AB)
-        if AB_len_sq < 1e-6: return False
+        if AB_len_sq < 1e-6: return False, None
         
-        # Vector A -> Estimated Projected Camera
-        A_EstProj = np.array([proj_est_x, proj_est_y]) - pA
-        
+        A_EstProj = p_est - pA
         t = np.dot(A_EstProj, AB) / AB_len_sq
         t = np.clip(t, 0.0, 1.0) 
         p_on_line = pA + t * AB
 
         theta_r = math.atan2(AB[1], AB[0])
-        global_yaw = theta_r + he
         
-        # CTE direction is perpendicular to path heading
+        # NOTE: Verify if this should be theta_r - he (it is -he in your other method!)
+        global_yaw = theta_r + he 
+        
         x_front = p_on_line[0] + cte * math.sin(theta_r)
         y_front = p_on_line[1] - cte * math.cos(theta_r)
 
-        # Transform back to Rear Axle using the total offset
         x_rear = x_front - total_offset * math.cos(global_yaw)
         y_rear = y_front - total_offset * math.sin(global_yaw)
 
@@ -368,7 +382,7 @@ class GlobalPoseEstimator:
         self.state[1] += error_y
         self.state[2] += error_yaw
         
-        return True
+        return True, theta_r
 
     def update(self, tags, camera_matrix, dist_coeffs, speed_mps, steering, dt, cte=None, he=None, has_lane_lock=False, lookahead_dist=0.0):
         """
@@ -382,6 +396,7 @@ class GlobalPoseEstimator:
         # --- Step 2: Absolute Fix (AprilTags) ---
         tag_success = False
         vis_trans, vis_rot = None, None
+        theta_r = None # Default value
         
         obj_points = []
         img_points = []
@@ -423,9 +438,7 @@ class GlobalPoseEstimator:
 
         # --- Step 3: Lane Correction (if Tags failed) ---
         if not tag_success and has_lane_lock and cte is not None and he is not None:
-             # This uses the self.state updated in Step 1 to find the closest ref point
-            #  lane_success = self._estimate_pose_from_lane(cte, he)
-             lane_success = self._estimate_pose_from_lane2(cte, he, lookahead_dist)
+             lane_success, theta_r = self._estimate_pose_from_lane2(cte, he, lookahead_dist)
              if lane_success:
                  vis_trans = np.array([self.state[0], self.state[1], 0.0]) 
                  vis_rot = np.degrees([0, 0, self.state[2]])
@@ -435,7 +448,7 @@ class GlobalPoseEstimator:
              vis_trans = np.array([self.state[0], self.state[1], 0.0])
              vis_rot = np.degrees([0, 0, self.state[2]])
 
-        return tag_success, vis_trans, vis_rot
+        return tag_success, vis_trans, vis_rot, theta_r
 
     def estimate_pose2(self, tags, camera_matrix, dist_coeffs=None):
         return False, None, None
@@ -547,8 +560,7 @@ class WebotsLaneFollower:
         
         int_point = (x_int, y_int)
         error_pixels = math.hypot(x_int - cx, y_int - cy)
-        # if x_int < cx:
-        #     error_pixels = -error_pixels
+
         x_at_axle_line = (cy - b)/m if abs(m) > 1e-6 else float('inf')
 
         if x_at_axle_line < cx:
@@ -752,7 +764,7 @@ class WebotsLaneFollower:
                     
                     # --- GLOBAL POSE ESTIMATOR UPDATE ---
                     # Feed the PROJ_CTE to the pose estimator, along with the lookahead distance
-                    vis_success, vis_trans, vis_rot = self.pose_estimator.update(
+                    vis_success, vis_trans, vis_rot, theta_r = self.pose_estimator.update(
                         tags, self.camera_matrix, None, 
                         speed_mps, noisy_steer, self.timestep/1000.0,
                         cte=proj_cte, he=he, has_lane_lock=has_lock, lookahead_dist=POSE_LOOKAHEAD_M
@@ -803,7 +815,8 @@ class WebotsLaneFollower:
                         steer=self.current_steering,
                         has_lock=has_lock,
                         odom=(odom_x, odom_y, odom_yaw),
-                        vision_pose=(vis_trans, vis_rot) 
+                        vision_pose=(vis_trans, vis_rot),
+                        theta_r=theta_r # <--- Pass the new heading tracking variable
                     )
 
                     cv2.imshow("BEV Driver", debug_img)
