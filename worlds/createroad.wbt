@@ -22,8 +22,8 @@ WorldInfo {
   ]
 }
 Viewpoint {
-  orientation 0.013778950270745922 -0.9983225671357685 -0.056233375115541495 5.8016091349101675
-  position -32.7096906785272 -0.16448069699438328 17.977411722362184
+  orientation 0.003801165834596707 -0.9998864755134875 -0.014580371172026495 5.772330679929784
+  position -15.537683646808546 -0.16845963363019334 16.014750677898636
   follow "vehicle"
   followType "Mounted Shot"
 }
@@ -32,110 +32,8 @@ TexturedBackground {
 TexturedBackgroundLight {
 }
 Solid {
-  translation 2.35 0.7 0
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00003_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(2)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00002_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(1)"
-    }
-  ]
-  name "solid(26)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation 3.35 0.7 0
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00000_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00001_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(5)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation 10.007 0.059925 0
-  rotation 0 0 1 -0.1245353071795865
+  translation 72.4933 7.26203 0
+  rotation 2.3464099999558937e-06 5.664739999893518e-06 0.9999999999812026 0.785398
   children [
     Solid {
       translation 0 0.72 0.01
@@ -183,20 +81,62 @@ Solid {
     }
   ]
   name "solid(3)"
-  rotationStep 0.0872665
 }
 Solid {
-  translation 20.1916 -1.2008 0
-  rotation 0 0 1 -0.16179530717958635
+  translation 7.35 -0.78 0
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColorMap ImageTexture {
+          url [
+            "../protos/textures/apriltags/fixed/tag36_11_00002_fixed.png"
+          ]
+          repeatS FALSE
+          repeatT FALSE
+          filtering 0
+        }
+        metalness 0
+      }
+      geometry Plane {
+        size 0.5 0.5
+      }
+    }
+  ]
+  name "solid(1)"
+}
+Solid {
+  translation 7.35 0.72 0
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColorMap ImageTexture {
+          url [
+            "../protos/textures/apriltags/fixed/tag36_11_00003_fixed.png"
+          ]
+          repeatS FALSE
+          repeatT FALSE
+          filtering 0
+        }
+        metalness 0
+      }
+      geometry Plane {
+        size 0.5 0.5
+      }
+    }
+  ]
+  name "solid(2)"
+}
+Solid {
+  translation 5 0 0
   children [
     Solid {
-      translation 0 0.72 0.01
+      translation 3.35 0.72 0.01
       children [
         Shape {
           appearance PBRAppearance {
             baseColorMap ImageTexture {
               url [
-                "../protos/textures/apriltags/fixed/tag36_11_00006_fixed.png"
+                "../protos/textures/apriltags/fixed/tag36_11_00000_fixed.png"
               ]
               repeatS FALSE
               repeatT FALSE
@@ -212,13 +152,13 @@ Solid {
       name "solid(3)"
     }
     Solid {
-      translation 0 -0.78 0.01
+      translation 3.35 -0.78 0.01
       children [
         Shape {
           appearance PBRAppearance {
             baseColorMap ImageTexture {
               url [
-                "../protos/textures/apriltags/fixed/tag36_11_00007_fixed.png"
+                "../protos/textures/apriltags/fixed/tag36_11_00001_fixed.png"
               ]
               repeatS FALSE
               repeatT FALSE
@@ -234,1051 +174,10 @@ Solid {
       name "solid(4)"
     }
   ]
-  name "solid(4)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation 39.4673 -21.7464 0
-  rotation 0 0 1 -1.495325307179586
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00008_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00009_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(6)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation 54.0197 -57.3021 0
-  rotation 0 0 1 -0.2553953071795858
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00010_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00011_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(7)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation 98.8848 -39.7248 0
-  rotation 0 0 1 1.40266
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00012_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00013_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(8)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation 116.679 -1.96904 0
-  rotation 0 0 -1 -0.22187530717958648
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00014_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00015_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(9)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation 155.955 12.0003 0
-  rotation 0 0 1 1.13
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00016_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00017_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(10)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation 143.71 57.8344 0
-  rotation 0 0 1 2.95353
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00018_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00019_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(11)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation 101.892 77.3449 0
-  rotation 0 0 -1 -1.813665307179586
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00020_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00021_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(12)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation 84.5998 117.649 0
-  rotation 0 0 1 2.81453
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00022_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00023_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(13)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation 40.9251 98.9955 0
-  rotation 0 0 -1 1.63606
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00024_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00025_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(14)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation 27.2772 63.6132 0
-  rotation 0 0 1 -2.759585307179586
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00026_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00027_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(15)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation -14.5781 50.4532 0
-  rotation 0 0 1 -2.0859853071795866
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00028_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00029_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(16)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation -14.5543 9.5864 0
-  rotation 0 0 -1 0.938789
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00030_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00031_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(17)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation 12.339 36.8684 0
-  rotation 0 0 -1 2.853185307179586
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00032_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00033_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(18)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation 3.84579 43.2635 0
-  rotation 0 0 1 -2.55
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00034_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00035_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(19)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation -2.09623 39.8046 0
-  rotation 0 0 -1 2.2882
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00036_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00037_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(20)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation -5.97055 35.8194 0
-  rotation 0 0 -1 1.95
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00038_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00039_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(21)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation -7.67138 29.9429 0
-  rotation 0 0 -1 1.63
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00040_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00041_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(22)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation -8.25637 22.2233 0
-  rotation 0 0 -1 1.43
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00042_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00043_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(23)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation -5.87464 18.2336 0
-  rotation 0 0 -1 0.988201
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00044_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00045_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(24)"
-  rotationStep 0.0872665
-}
-Solid {
-  translation -1.85099 15.8005 0
-  rotation 0 0 1 -0.551795307179586
-  children [
-    Solid {
-      translation 0 0.72 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00046_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(3)"
-    }
-    Solid {
-      translation 0 -0.78 0.01
-      children [
-        Shape {
-          appearance PBRAppearance {
-            baseColorMap ImageTexture {
-              url [
-                "../protos/textures/apriltags/fixed/tag36_11_00047_fixed.png"
-              ]
-              repeatS FALSE
-              repeatT FALSE
-              filtering 0
-            }
-            metalness 0
-          }
-          geometry Plane {
-            size 0.5 0.5
-          }
-        }
-      ]
-      name "solid(4)"
-    }
-  ]
-  name "solid(25)"
-  rotationStep 0.0872665
+  name "solid(5)"
 }
 BmwX5 {
-  translation -4.04537 0.605375 0.605595
+  translation 0.0744507 -0.025461 0.643099
   rotation 0.00022246486268542086 -0.9997208509297469 -0.02362563704300305 0.009117639309515783
   controller "testing"
   sensorsSlotFront [
@@ -1340,6 +239,7 @@ Floor {
   }
 }
 DEF LOOP Solid {
+  translation 0 0 -0.01
   children [
     Road {
       id "sesuatu"
@@ -1352,7 +252,21 @@ DEF LOOP Solid {
       ]
       bottom TRUE
       wayPoints [
-        40 -30 0, 40 -40 0, 44 -54 0, 60 -60 0, 80 -60 0, 94 -54 0, 100 -40 0, 100 -20 0, 106 -6 0, 120 0 0, 140 0 0, 154 6 0, 160 20 0, 160 40 0, 154 54 0, 140 60 0, 120 60 0, 106 66 0, 100 80 0, 100 100 0, 94 114 0, 80 120 0, 60 120 0, 46 114 0, 40 100 0, 40 80 0, 34 66 0, 20 60 0, 0 60 0, -14 54 0, -20 40 0, -20 20 0, -14 6 0, 0 0 0, 20 0 0, 34 -6 0, 40 -20 0, 40 -30 0
+        0 0 0
+        50 0 0
+        60 0 0
+        74 6 0
+        80 20 0
+        80 30 0
+        80 40 0
+        86 54 0
+        100 60 0
+        110 60 0
+        120 60 0
+        134 54 0
+        140 40 0
+        140 0 0
+        140 -60 0
       ]
       splineSubdivision 6
       rightBorderBoundingObject TRUE
@@ -1364,4 +278,107 @@ DEF LOOP Solid {
       name "solid(18)"
     }
   ]
+}
+Solid {
+  translation 87.6185 52.9769 0
+  rotation 2.3464099999558937e-06 5.664739999893517e-06 0.9999999999812025 0.7853979999999999
+  children [
+    Solid {
+      translation 0 0.72 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00006_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 0 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00007_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(26)"
+}
+Solid {
+  translation 135.031 49.8227 0
+  rotation 2.3464099999741633e-06 -4.064099999955249e-06 0.9999999999889888 -1.047195307179586
+  children [
+    Solid {
+      translation 0 0.72 0.01
+      rotation 0 -1 0 -5.307179586466759e-06
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00008_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(3)"
+    }
+    Solid {
+      translation 0 -0.78 0.01
+      children [
+        Shape {
+          appearance PBRAppearance {
+            baseColorMap ImageTexture {
+              url [
+                "../protos/textures/apriltags/fixed/tag36_11_00009_fixed.png"
+              ]
+              repeatS FALSE
+              repeatT FALSE
+              filtering 0
+            }
+            metalness 0
+          }
+          geometry Plane {
+            size 0.5 0.5
+          }
+        }
+      ]
+      name "solid(4)"
+    }
+  ]
+  name "solid(27)"
 }

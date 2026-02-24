@@ -114,7 +114,7 @@ class StanleyController:
         return max(0.2, desired_speed)
 
 class GlobalPoseEstimator:
-    def __init__(self, tag_map_path, tag_size_meters, ref_path_file="ref_path.csv"):
+    def __init__(self, tag_map_path, tag_size_meters, ref_path_file="ref_path3.csv"):
         self.tag_size = tag_size_meters
         self.tag_map = self._load_map(tag_map_path)
         self.world_corners = {} 
@@ -128,6 +128,7 @@ class GlobalPoseEstimator:
         self.cameraX = 0.0954
         self.cameraY = 0.0
         self.cameraZ = 0.169114 + 0.375
+        self.theta_r = 0.0
         
         # Total distance from Rear Axle to Camera (approximate X-offset)
         self.cam_offset_x = self.frontSlotX + self.cameraX
@@ -169,7 +170,7 @@ class GlobalPoseEstimator:
                 header_skipped = False
                 for idx, row in enumerate(reader):
                     # Only process every 10th row
-                    if idx % 25 != 0:
+                    if idx % 15 != 0:
                         continue
                     
                     # Simple heuristic to skip header if it contains text
@@ -282,7 +283,11 @@ class GlobalPoseEstimator:
         p_on_line = pA + t * AB
 
         # 5. Calculate Heading of the Segment
+        prev_theta_r = theta_r
         theta_r = math.atan2(AB[1], AB[0])
+        if abs(prev_theta_r-theta_r) < 0.05:
+            err = prev_theta_r - theta_r
+            theta_r = theta_r + 0.05 * (abs(err)/err)
 
         # 6. Apply Lateral Correction (CTE)
         # New Global Heading
@@ -363,13 +368,22 @@ class GlobalPoseEstimator:
         t = np.clip(t, 0.0, 1.0) 
         p_on_line = pA + t * AB
 
-        theta_r = math.atan2(AB[1], AB[0])
+        if self.theta_r == 0.0:
+            self.theta_r = math.atan2(AB[1], AB[0])
+        else:
+            prev_theta_r = self.theta_r
+            self.theta_r = math.atan2(AB[1], AB[0])
+            err = prev_theta_r - self.theta_r
+            if err == 0.0:
+                pass
+            elif err < 0.05:
+                self.theta_r = self.theta_r + 0.1 * (abs(err)/err)
         
-        # NOTE: Verify if this should be theta_r - he (it is -he in your other method!)
-        global_yaw = theta_r + he 
+        # NOTE: Verify if this should be self.theta_r - he (it is -he in your other method!)
+        global_yaw = self.theta_r + he
         
-        x_front = p_on_line[0] + cte * math.sin(theta_r)
-        y_front = p_on_line[1] - cte * math.cos(theta_r)
+        x_front = p_on_line[0] + cte * math.sin(self.theta_r)
+        y_front = p_on_line[1] - cte * math.cos(self.theta_r)
 
         x_rear = x_front - total_offset * math.cos(global_yaw)
         y_rear = y_front - total_offset * math.sin(global_yaw)
@@ -382,7 +396,7 @@ class GlobalPoseEstimator:
         self.state[1] += error_y
         self.state[2] += error_yaw
         
-        return True, theta_r
+        return True, self.theta_r
 
     def update(self, tags, camera_matrix, dist_coeffs, speed_mps, steering, dt, cte=None, he=None, has_lane_lock=False, lookahead_dist=0.0):
         """
@@ -794,14 +808,36 @@ class WebotsLaneFollower:
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
                     # ==========================================
 
-                    track_pos_est = (None, None, None)
+                    track_pos_est = (None, None)
                     gps_pos = None
                     car_rot = None
                     
-                    if self.gps and self.imu:
-                        gps_pos = self.gps.getValues() 
+                    if self.gps and self.imu and has_lock:
+                        gps_pos = self.gps.getValues()
                         rpy = self.imu.getRollPitchYaw()
                         car_rot = np.degrees(rpy)
+                        
+                        car_yaw = rpy[2]
+                        car_x, car_y, car_z = gps_pos
+                        track_heading = car_yaw - he
+                        
+                        # --- MODIFIED: Apply longitudinal offset ---
+                        total_offset = self.pose_estimator.cam_offset_x + POSE_LOOKAHEAD_M
+                        
+                        # Project position forward along current yaw
+                        proj_car_x = car_x + total_offset * math.cos(car_yaw)
+                        
+                        # Assuming standard math orientation (matches your GlobalPoseEstimator). 
+                        # If your Webots Y-axis is inverted (like in your manual odom calc), 
+                        # change this to: proj_car_y = car_y - total_offset * math.sin(car_yaw)
+                        proj_car_y = car_y + total_offset * math.sin(car_yaw)
+                        
+                        # --- MODIFIED: Apply lateral offset using proj_cte ---
+                        t_x = proj_car_x - proj_cte * math.cos(track_heading - math.pi/2)
+                        t_y = proj_car_y + proj_cte * math.sin(track_heading - math.pi/2)
+                        t_z = car_z  # Z left unshifted (assuming it represents height)
+                        
+                        track_pos_est = (t_x, t_y, t_z)
 
                     # --- Log Data ---
                     self.logger.log(
