@@ -43,23 +43,24 @@ class DataLogger:
         self.file = open(self.filename, mode='w', newline='', buffering=1)
         self.writer = csv.writer(self.file)
         
-        # Updated Header: Renamed pos_ -> gps_ and added vis_ columns + theta_r
+        # Updated Header: Added tag_detected at the end
         header = [
             "timestamp", 
-            "gps_x", "gps_y", "gps_z",       # Car GPS Position (Renamed)
-            "track_x", "track_y", "track_z", # Calculated Track Center Position
-            "roll", "pitch", "yaw",          # Car Orientation (IMU)
+            "gps_x", "gps_y", "gps_z",       
+            "track_x", "track_y", "track_z", 
+            "roll", "pitch", "yaw",          
             "cross_track_error", "heading_error", 
             "speed_cmd", "steering_cmd", "has_lock",
-            "odom_x", "odom_y", "odom_yaw",  # Odometry
-            "vis_x", "vis_y", "vis_z",       # Vision POSE POS
-            "vis_roll", "vis_pitch", "vis_yaw", # Vision POSE ROT
-            "theta_r"                        # Path heading
+            "odom_x", "odom_y", "odom_yaw",  
+            "vis_x", "vis_y", "vis_z",       
+            "vis_roll", "vis_pitch", "vis_yaw", 
+            "theta_r",                        
+            "tag_detected"                   # <--- NEW COLUMN
         ]
         self.writer.writerow(header)
         print(f"Data logger initialized. Writing to: {self.filename}")
 
-    def log(self, timestamp, pos, track_pos, rot, cte, he, speed, steer, has_lock, odom, vision_pose, theta_r):
+    def log(self, timestamp, pos, track_pos, rot, cte, he, speed, steer, has_lock, odom, vision_pose, theta_r, tag_detected):
         px, py, pz = pos if pos is not None else (None, None, None)
         tx, ty, tz = track_pos if track_pos is not None else (None, None)
         roll, pitch, yaw = rot if rot is not None else (None, None, None)
@@ -68,7 +69,6 @@ class DataLogger:
         ox, oy, oyaw = odom
 
         # Unpack Vision Pose
-        # vision_pose is expected to be ((x,y,z), (r,p,y)) or None
         if vision_pose and vision_pose[0] is not None:
             v_trans, v_rot = vision_pose
             vx, vy, vz = v_trans[0], v_trans[1], v_trans[2]
@@ -89,10 +89,10 @@ class DataLogger:
             round(float(ox), 4), 
             round(float(oy), 4), 
             round(float(oyaw), 4),
-            # Vision Columns
             vx, vy, vz,
             vr, vp, vy_ang,
-            round(float(theta_r), 4) if theta_r is not None else None
+            round(float(theta_r), 4) if theta_r is not None else None,
+            int(tag_detected)                # <--- NEW VALUE
         ]
         self.writer.writerow(row)
 
@@ -114,7 +114,7 @@ class StanleyController:
         return max(0.2, desired_speed)
 
 class GlobalPoseEstimator:
-    def __init__(self, tag_map_path, tag_size_meters, ref_path_file="ref_path3.csv"):
+    def __init__(self, tag_map_path, tag_size_meters, ref_path_file="refpath2.csv"):
         self.tag_size = tag_size_meters
         self.tag_map = self._load_map(tag_map_path)
         self.world_corners = {} 
@@ -852,7 +852,8 @@ class WebotsLaneFollower:
                         has_lock=has_lock,
                         odom=(odom_x, odom_y, odom_yaw),
                         vision_pose=(vis_trans, vis_rot),
-                        theta_r=theta_r # <--- Pass the new heading tracking variable
+                        theta_r=theta_r,
+                        tag_detected=(len(tags) > 0)   # <--- Pass the detection state
                     )
 
                     cv2.imshow("BEV Driver", debug_img)
